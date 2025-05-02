@@ -47,7 +47,6 @@ export async function getLLMResponse(prompt, apiKey) {
                         content: prompt
                     }
                 ],
-                temperature: 0.7,
                 max_tokens: 2000,
                 web_search_options: {
                     search_context_size: "high", // Use high for more thorough search results
@@ -104,10 +103,12 @@ export async function getLLMResponse(prompt, apiKey) {
             // Log the specific error for debugging
             console.log('API Error Type:', errorMessage);
             
-            // Check if the error is related to web search or model availability
+            // Check if the error is related to web search, model availability, or incompatible parameters
             if (errorMessage.includes('web_search') || 
                 errorMessage.includes('not available') || 
-                errorMessage.includes('Invalid model')) {
+                errorMessage.includes('Invalid model') ||
+                errorMessage.includes('incompatible') ||
+                errorMessage.includes('temperature')) {
                 
                 console.log('Web search or model not available, retrying with standard model...');
                 
