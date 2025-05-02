@@ -1,0 +1,515 @@
+/* Results Page Styles */
+.results-container {
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+}
+
+.back-button {
+    margin-bottom: 1.5rem;
+    display: inline-block;
+}
+
+.back-button a {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: color var(--transition-speed);
+}
+
+.back-button a:hover {
+    color: var(--text-color);
+}
+
+/* Artist Header */
+.artist-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 2rem;
+}
+
+.artist-image-container {
+    flex-shrink: 0;
+}
+
+.artist-image {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background-color: var(--background-alt);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.artist-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.artist-info {
+    flex: 1;
+}
+
+.artist-info h1 {
+    margin-bottom: 0.5rem;
+}
+
+.artist-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.genre-tag {
+    background-color: var(--background-alt);
+    padding: 0.4rem 0.85rem;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Section Cards */
+.section-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 10px var(--shadow-color);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.section-card h2 {
+    margin-bottom: 1.5rem;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.section-card h2::after {
+    content: '';
+    height: 3px;
+    width: 40px;
+    background-color: var(--primary-color);
+    position: absolute;
+    bottom: -0.5rem;
+    left: 0;
+    border-radius: 3px;
+}
+
+/* Refresh Button */
+.refresh-button {
+    font-size: 1.2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.refresh-button:hover {
+    color: var(--primary-color);
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.refresh-button.hidden {
+    display: none;
+}
+
+/* Albums Grid */
+.albums-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1.5rem;
+}
+
+.album-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: var(--background-alt);
+    transition: transform var(--transition-speed);
+    height: 100%;
+}
+
+.album-card:hover {
+    transform: translateY(-5px);
+}
+
+.album-cover {
+    aspect-ratio: 1/1;
+    background-color: var(--background-alt);
+    position: relative;
+    overflow: hidden;
+}
+
+.album-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.album-info {
+    padding: 1rem;
+}
+
+.album-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.35rem;
+    line-height: 1.3;
+}
+
+.album-year {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Recommendations */
+.recommendations-header {
+    margin-bottom: 1.5rem;
+}
+
+.recommendations-header p {
+    font-size: 1rem;
+    color: var(--text-color);
+    opacity: 0.75;
+    font-style: italic;
+    margin: 0;
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+}
+
+.recommendation-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: var(--background-alt);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+    position: relative;
+    height: 100%;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.recommendation-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.card-image-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1/1;
+    overflow: hidden;
+}
+
+.card-image-main {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.recommendation-card:hover .card-image-main {
+    transform: scale(1.05);
+}
+
+.year-tag {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    z-index: 2;
+}
+
+.card-simple-info {
+    padding: 0.8rem;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+.card-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-type {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.card-details {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 5;
+    overflow-y: auto;
+}
+
+.card-details.show-details {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.card-quote {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+}
+
+.card-source {
+    margin-top: auto;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+.spotify-indicator {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 3;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.placeholder-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+}
+
+/* Influence Tree Visualization */
+.influences-visualization {
+    width: 100%;
+    min-height: 500px;
+    position: relative;
+}
+
+.influence-node {
+    position: absolute;
+    border-radius: 50%;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.influence-node:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    z-index: 10;
+}
+
+.influence-node img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.influence-node .node-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255,255,255,0.9);
+    padding: 3px 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.influence-node .node-era {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255,255,255,0.9);
+    padding: 2px 0;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.influence-connection {
+    position: absolute;
+    background-color: rgba(0,0,0,0.1);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.influence-tooltip {
+    position: absolute;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    padding: 0.75rem;
+    max-width: 200px;
+    font-size: 0.8rem;
+    z-index: 100;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+}
+
+.influence-node:hover + .influence-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Locked Content */
+.section-card.locked h2::after {
+    background-color: var(--text-secondary);
+}
+
+.locked-content {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-secondary);
+}
+
+.unlock-button {
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    margin-top: 1rem;
+    transition: background-color var(--transition-speed);
+}
+
+.unlock-button:hover {
+    background-color: var(--text-color);
+}
+
+/* Loading Skeletons for Results Page */
+.artist-header.loading .artist-image {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+.album-card.skeleton {
+    height: 220px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .artist-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1.5rem;
+    }
+    
+    .artist-image {
+        width: 180px;
+        height: 180px;
+    }
+    
+    .artist-info {
+        width: 100%;
+    }
+    
+    .section-card {
+        padding: 1.5rem;
+    }
+    
+    .albums-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 1rem;
+    }
+    
+    .recommendations-content,
+    .influences-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .section-card {
+        padding: 1.25rem;
+    }
+    
+    .albums-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+    
+    .recommendations-grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 1rem;
+    }
+    
+    .influence-card {
+        flex-direction: column;
+    }
+    
+    .card-image {
+        width: 100%;
+        height: 160px;
+    }
+    
+    .card-name {
+        font-size: 0.8rem;
+    }
+    
+    .card-type {
+        font-size: 0.7rem;
+    }
+    
+    .card-quote {
+        font-size: 0.8rem;
+    }
+}

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist Details - Artist Explorer</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/results.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <header>
+        <div class="logo"><a href="index.html">Artist Explorer</a></div>
+        
+        <div class="mini-search-container">
+            <input type="text" id="miniArtistSearch" class="mini-search-input" placeholder="Search for another artist..." autocomplete="off">
+            <div id="miniSearchResults" class="search-results mini"></div>
+        </div>
+    </header>
+    
+    <main class="container results-container">
+        <div class="back-button">
+            <a href="index.html">&larr; Back to search</a>
+        </div>
+        
+        <section id="artistHeader" class="artist-header loading">
+            <div class="artist-image-container">
+                <div class="artist-image" id="artistImage"></div>
+            </div>
+            <div class="artist-info">
+                <h1 id="artistName" class="skeleton-text">Artist Name</h1>
+                <div id="artistGenres" class="artist-genres skeleton-text">Genres</div>
+            </div>
+        </section>
+        
+        <section id="artistRecommendations" class="artist-recommendations section-card locked">
+            <h2>
+                Recent Recommendations
+                <button id="refreshRecommendations" class="refresh-button hidden" title="Get fresh data">↻</button>
+            </h2>
+            <div class="locked-content" id="recommendationsLockedContent">
+                <p>Unlock artist recommendations by adding your OpenAI API key.</p>
+                <button id="unlockRecommendations" class="unlock-button">Add API Key</button>
+            </div>
+            <div id="recommendationsContent" class="recommendations-content hidden">
+                <!-- Recommendations will be populated here -->
+            </div>
+        </section>
+        
+        <section id="artistInfluences" class="artist-influences section-card locked">
+            <h2>
+                Influence Tree
+                <button id="refreshInfluences" class="refresh-button hidden" title="Get fresh data">↻</button>
+            </h2>
+            <div class="locked-content" id="influencesLockedContent">
+                <p>Unlock artist influence visualization by adding your OpenAI API key.</p>
+                <button id="unlockInfluences" class="unlock-button">Add API Key</button>
+            </div>
+            <div id="influencesVisualization" class="influences-visualization hidden">
+                <!-- Influence tree visualization will be rendered here -->
+            </div>
+        </section>
+    </main>
+
+    <div class="api-key-modal" id="apiKeyModal">
+        <div class="modal-content">
+            <span class="close-button" id="closeModal">&times;</span>
+            <h2>Enter Your OpenAI API Key</h2>
+            <p>To unlock recommendations and influences, please enter your OpenAI API key.</p>
+            <form id="apiKeyForm">                
+                <label for="apiKeyInput">OpenAI API Key:</label>
+                <input type="text" id="apiKeyInput" placeholder="sk-...">
+                
+                <button type="submit" class="submit-button">Save Key</button>
+            </form>
+            <div class="instructions">
+                <h3>How to get your API key:</h3>
+                <ol>
+                    <li>Visit <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI API Keys</a></li>
+                    <li>Sign up or log in to your account</li>
+                    <li>Create a new API key</li>
+                    <li>Copy and paste it here</li>
+                </ol>
+                <p class="note">Your API key is stored locally in your browser and is not sent to our servers.</p>
+                <p>Note: Artist and album information is provided by Spotify's API through the server, but recommendations and influences require your own OpenAI API key.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; Artist Explorer - 2024</p>
+    </footer>
+    
+    <script type="module" src="js/results.js"></script>
+</body>
+</html>
