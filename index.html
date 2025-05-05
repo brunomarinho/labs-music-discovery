@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/search.css">
     <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/featured-artists.css">
+    
+    <!-- No longer need external script as we're using the JS module directly -->
 </head>
 <body>
     <header>
@@ -27,6 +30,14 @@
                     </svg>
                 </button>
                 <div id="searchResults" class="search-results"></div>
+            </div>
+        </section>
+        
+        <section id="featured-artists-container" class="featured-artists-container">
+            <!-- Featured artists will be loaded dynamically -->
+            <div class="loading-indicator">
+                <div class="spinner"></div>
+                <p>Loading featured artists...</p>
             </div>
         </section>
     </main>

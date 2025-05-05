@@ -1,16 +1,69 @@
 // LLM Service for API interactions
 
-// OpenAI API endpoint
+// API endpoints
 const API_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+const SERVER_ENDPOINTS = {
+    RECOMMENDATIONS: '/api/cached-recommendations',
+    INFLUENCES: '/api/cached-influences'
+};
+
+// Try to get cached LLM data from server
+async function getServerCachedLLMData(endpoint, artistId) {
+    if (!artistId) return null;
+    
+    try {
+        const response = await fetch(`${endpoint}/${artistId}`);
+        
+        if (!response.ok) {
+            // Not found or server error
+            return null;
+        }
+        
+        const data = await response.json();
+        return data.success && data.data ? data.data : null;
+    } catch (error) {
+        console.error(`Error fetching from ${endpoint}:`, error);
+        return null;
+    }
+}
 
 // Function to send requests to the LLM API
 export async function getLLMResponse(prompt, apiKey) {
-    if (!apiKey) {
-        throw new Error('API key is required');
-    }
-    
     if (!prompt) {
         throw new Error('Prompt is required');
+    }
+    
+    // Determine if this is a recommendations or influences request
+    const isRecommendationsQuery = prompt.includes('recommendations');
+    const isInfluencesQuery = prompt.includes('influences');
+    
+    // Try to extract artist ID from the prompt if possible
+    // This is a simple regex to find Spotify IDs which are 22 characters long
+    // e.g. "What music has X (id: 1vCWHaC5f2uS3yhpwWbIA6) recommended?"
+    const idMatch = prompt.match(/id:?\s+([a-zA-Z0-9]{22})/i);
+    const artistId = idMatch ? idMatch[1] : null;
+    
+    // If we have an artist ID, try to get data from server cache first
+    if (artistId) {
+        const endpoint = isRecommendationsQuery ? SERVER_ENDPOINTS.RECOMMENDATIONS : 
+                         isInfluencesQuery ? SERVER_ENDPOINTS.INFLUENCES : null;
+                         
+        if (endpoint) {
+            console.log(`Trying to get ${isRecommendationsQuery ? 'recommendations' : 'influences'} from server cache for ${artistId}...`);
+            const cachedData = await getServerCachedLLMData(endpoint, artistId);
+            
+            if (cachedData) {
+                console.log(`Using server-cached data for ${artistId}`);
+                return JSON.stringify(cachedData);
+            }
+            
+            console.log(`No cached data found on server for ${artistId}, proceeding with API call`);
+        }
+    }
+    
+    // If no server cache or no artist ID, we need an API key
+    if (!apiKey) {
+        throw new Error('API key is required');
     }
     
     // No mock data usage, we always use the real API
@@ -23,8 +76,7 @@ export async function getLLMResponse(prompt, apiKey) {
         
         // Always try to use web search for recommendations
         // For other types of queries, make a decision based on what we need
-        const isRecommendationsQuery = prompt.includes('recommendations');
-        const useWebSearch = isRecommendationsQuery || prompt.includes('influences');
+        const useWebSearch = isRecommendationsQuery || isInfluencesQuery;
         
         // Prepare the request data
         let requestData;

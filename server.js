@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
+const cache = require('./server-cache'); // Import the server cache module
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -83,6 +84,150 @@ app.get('/api/spotify/*', async (req, res) => {
   }
 });
 
+// Featured artists API endpoint
+app.get('/api/featured', (req, res) => {
+  try {
+    const featuredArtists = cache.getHomepageFeaturedArtists();
+    
+    res.json({
+      success: true,
+      data: featuredArtists
+    });
+  } catch (error) {
+    console.error('Error fetching featured artists:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch featured artists'
+    });
+  }
+});
+
+// Pre-cached artist data API endpoint
+app.get('/api/cached-artist/:id', (req, res) => {
+  try {
+    const artistId = req.params.id;
+    if (!artistId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Artist ID is required'
+      });
+    }
+    
+    const artistData = cache.getArtistData(artistId);
+    if (!artistData) {
+      return res.status(404).json({
+        success: false,
+        error: 'Artist not found in cache'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: artistData
+    });
+  } catch (error) {
+    console.error('Error fetching cached artist data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch artist data from cache'
+    });
+  }
+});
+
+// Pre-cached recommendations API endpoint
+app.get('/api/cached-recommendations/:id', (req, res) => {
+  try {
+    const artistId = req.params.id;
+    if (!artistId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Artist ID is required'
+      });
+    }
+    
+    const recommendations = cache.getArtistRecommendations(artistId);
+    if (!recommendations) {
+      return res.status(404).json({
+        success: false,
+        error: 'Recommendations not found in cache'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: recommendations
+    });
+  } catch (error) {
+    console.error('Error fetching cached recommendations:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch recommendations from cache'
+    });
+  }
+});
+
+// Pre-cached influences API endpoint
+app.get('/api/cached-influences/:id', (req, res) => {
+  try {
+    const artistId = req.params.id;
+    if (!artistId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Artist ID is required'
+      });
+    }
+    
+    const influences = cache.getArtistInfluences(artistId);
+    if (!influences) {
+      return res.status(404).json({
+        success: false,
+        error: 'Influences not found in cache'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: influences
+    });
+  } catch (error) {
+    console.error('Error fetching cached influences:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch influences from cache'
+    });
+  }
+});
+
+// Cache management endpoint (admin only)
+app.post('/api/admin/cache/rebuild', (req, res) => {
+  // This should be protected by an admin auth mechanism in production
+  const { adminKey } = req.body;
+  
+  if (!adminKey || adminKey !== process.env.ADMIN_API_KEY) {
+    return res.status(403).json({
+      success: false,
+      error: 'Unauthorized'
+    });
+  }
+  
+  // Trigger cache rebuild in the background
+  const { exec } = require('child_process');
+  exec('node cache-builder.js', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Cache rebuild error: ${error}`);
+    }
+    console.log(`Cache rebuild output: ${stdout}`);
+    if (stderr) {
+      console.error(`Cache rebuild stderr: ${stderr}`);
+    }
+  });
+  
+  res.json({
+    success: true,
+    message: 'Cache rebuild started in the background'
+  });
+});
+
 // Serve the main application
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -125,4 +270,18 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Spotify API credentials loaded: ID=${SPOTIFY_CLIENT_ID ? 'YES' : 'NO'}, Secret=${SPOTIFY_CLIENT_SECRET ? 'YES' : 'NO'}`);
   console.log(`Last.fm API key loaded: ${LASTFM_API_KEY ? 'YES' : 'NO'}`);
+  
+  // Log cache status
+  const featuredArtists = cache.getHomepageFeaturedArtists();
+  console.log(`Server cache initialized with ${featuredArtists.length} featured artists`);
+  console.log(`To populate cache, run: node cache-builder.js`);
+  
+  // If the cache is empty and we have Spotify credentials, suggest running the cache builder
+  if (featuredArtists.length === 0 && SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET) {
+    console.log('\n⚠️  Featured artists cache is empty!');
+    console.log('Run the following command to build the cache:');
+    console.log('  node cache-builder.js');
+    console.log('\nTo include LLM-generated data (needs OpenAI API key):');
+    console.log('  node cache-builder.js --with-llm-data <YOUR_OPENAI_API_KEY>\n');
+  }
 });

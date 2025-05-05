@@ -8,7 +8,8 @@ const CACHE_KEYS = {
     ARTIST_ALBUMS_PREFIX: 'artist_explorer_albums_',
     ARTIST_BIO_PREFIX: 'artist_explorer_bio_',
     ARTIST_RECOMMENDATIONS_PREFIX: 'artist_explorer_recommendations_',
-    ARTIST_INFLUENCES_PREFIX: 'artist_explorer_influences_'
+    ARTIST_INFLUENCES_PREFIX: 'artist_explorer_influences_',
+    PREFETCH_STATUS: 'artist_explorer_prefetch_status'
 };
 
 // Cache expiration times (in milliseconds)
@@ -18,7 +19,8 @@ const CACHE_EXPIRATION = {
     ARTIST_ALBUMS: 7 * 24 * 60 * 60 * 1000, // 7 days
     ARTIST_BIO: 30 * 24 * 60 * 60 * 1000, // 30 days
     ARTIST_RECOMMENDATIONS: 30 * 24 * 60 * 60 * 1000, // 30 days
-    ARTIST_INFLUENCES: 30 * 24 * 60 * 60 * 1000 // 30 days
+    ARTIST_INFLUENCES: 30 * 24 * 60 * 60 * 1000, // 30 days
+    PREFETCH_STATUS: 90 * 24 * 60 * 60 * 1000 // 90 days
 };
 
 // Helper function to save data to localStorage with expiration
@@ -136,17 +138,106 @@ export function getCachedArtistInfluences(artistId) {
     return getFromCache(key);
 }
 
+// Prefetch status management
+export function setPrefetchStatus(status = true) {
+    return saveToCache(CACHE_KEYS.PREFETCH_STATUS, { 
+        completed: status,
+        timestamp: Date.now() 
+    }, CACHE_EXPIRATION.PREFETCH_STATUS);
+}
+
+export function getPrefetchStatus() {
+    return getFromCache(CACHE_KEYS.PREFETCH_STATUS);
+}
+
+// Bulk artist data operations
+export function bulkCacheArtistData(artistsData) {
+    if (!artistsData || !Array.isArray(artistsData) || artistsData.length === 0) {
+        console.error('Invalid artist data provided for bulk caching');
+        return false;
+    }
+    
+    try {
+        let successCount = 0;
+        
+        artistsData.forEach(artistData => {
+            if (artistData && artistData.id) {
+                const success = cacheArtistData(artistData.id, artistData);
+                if (success) successCount++;
+            }
+        });
+        
+        console.log(`Bulk cached ${successCount}/${artistsData.length} artists`);
+        return successCount > 0;
+    } catch (error) {
+        console.error('Error during bulk artist caching:', error);
+        return false;
+    }
+}
+
+// Bulk recommendations and influences operations
+export function bulkCacheArtistRecommendations(artistRecommendations) {
+    if (!artistRecommendations || typeof artistRecommendations !== 'object') {
+        return false;
+    }
+    
+    try {
+        let successCount = 0;
+        
+        Object.entries(artistRecommendations).forEach(([artistId, recommendations]) => {
+            if (recommendations) {
+                const success = cacheArtistRecommendations(artistId, recommendations);
+                if (success) successCount++;
+            }
+        });
+        
+        console.log(`Bulk cached recommendations for ${successCount} artists`);
+        return successCount > 0;
+    } catch (error) {
+        console.error('Error during bulk recommendations caching:', error);
+        return false;
+    }
+}
+
+export function bulkCacheArtistInfluences(artistInfluences) {
+    if (!artistInfluences || typeof artistInfluences !== 'object') {
+        return false;
+    }
+    
+    try {
+        let successCount = 0;
+        
+        Object.entries(artistInfluences).forEach(([artistId, influences]) => {
+            if (influences) {
+                const success = cacheArtistInfluences(artistId, influences);
+                if (success) successCount++;
+            }
+        });
+        
+        console.log(`Bulk cached influences for ${successCount} artists`);
+        return successCount > 0;
+    } catch (error) {
+        console.error('Error during bulk influences caching:', error);
+        return false;
+    }
+}
+
 // Clear all cache
 export function clearAllCache() {
     try {
-        // Keep API keys, clear everything else
+        // Keep API keys and prefetch status, clear everything else
         const apiKey = loadCachedApiKey();
+        const prefetchStatus = getPrefetchStatus();
         
         localStorage.clear();
         
-        // Restore keys after clearing
+        // Restore keys and prefetch status after clearing
         if (apiKey) {
             saveApiKey(apiKey);
+        }
+        
+        if (prefetchStatus) {
+            setPrefetchStatus(prefetchStatus.data.completed);
         }
         
         return true;

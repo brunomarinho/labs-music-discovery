@@ -3,9 +3,48 @@ import { getLLMResponse } from '../services/llm-service.js';
 import { cacheArtistRecommendations, getCachedArtistRecommendations } from '../services/cache-service.js';
 import { searchArtistByName, searchAlbumByName } from '../services/spotify-service.js';
 
+/**
+ * Fetch recommendations from server cache
+ * @param {string} artistId - The artist ID
+ * @returns {Promise<Array>} Array of recommendations
+ */
+async function fetchServerCachedRecommendations(artistId) {
+    if (!artistId) return null;
+    
+    try {
+        const response = await fetch(`/api/cached-recommendations/${artistId}`);
+        
+        if (!response.ok) {
+            console.log(`Server returned ${response.status} when fetching recommendations for ${artistId}`);
+            return null;
+        }
+        
+        const data = await response.json();
+        console.log(`Got recommendation data from server for ${artistId}:`, typeof data, Array.isArray(data) ? 'array with ' + data.length + ' items' : 'not array');
+        
+        // Handle success response with data array
+        if (data && data.success === true && data.data) {
+            console.log(`Found data in .data property (${typeof data.data})`);
+            return data.data;
+        }
+        
+        // Handle direct array in response (no wrapper)
+        if (Array.isArray(data)) {
+            console.log(`Found array directly in response (${data.length} items)`);
+            return data;
+        }
+        
+        console.log('Server returned unexpected format for recommendations:', data);
+        return null;
+    } catch (error) {
+        console.error('Error fetching recommendations from server:', error);
+        return null;
+    }
+}
+
 export async function loadArtistRecommendations(artistData, apiKey, forceRefresh = false) {
-    if (!artistData || !apiKey) {
-        console.error('Artist data or API key missing');
+    if (!artistData) {
+        console.error('Artist data missing');
         return;
     }
     
@@ -19,11 +58,20 @@ export async function loadArtistRecommendations(artistData, apiKey, forceRefresh
         return;
     }
     
+    // Simplified approach - always show content when API key is provided or this is a cached artist
+    // In results.js, we're only calling this function for cached artists or when API key is available
+    
     // Show content and hide locked message
     recommendationsContent.classList.remove('hidden');
     lockedContent.classList.add('hidden');
     recommendationsSection.classList.remove('locked');
-    refreshButton.classList.remove('hidden');
+    
+    // Only show refresh button if we have an API key
+    if (apiKey) {
+        refreshButton.classList.remove('hidden');
+    } else {
+        refreshButton.classList.add('hidden');
+    }
     
     // Set up refresh button click handler
     refreshButton.onclick = () => {
@@ -38,20 +86,59 @@ export async function loadArtistRecommendations(artistData, apiKey, forceRefresh
             </div>
         `;
         
-        // Check cache first (unless forcing refresh)
+        // Check local cache first (unless forcing refresh)
         if (!forceRefresh) {
+            // Check local cache
             const cachedRecommendations = getCachedArtistRecommendations(artistData.id);
             if (cachedRecommendations) {
-                console.log('Using cached recommendations for', artistData.name);
+                console.log('Using locally cached recommendations for', artistData.name);
                 await displayRecommendations(cachedRecommendations, recommendationsContent);
                 return;
             }
-        } else {
-            // Clear cache if forcing refresh
+            
+            // If no local cache, try to get from server
+            try {
+                const serverRecommendations = await fetchServerCachedRecommendations(artistData.id);
+                if (serverRecommendations) {
+                    console.log('Using server-cached recommendations for', artistData.name);
+                    
+                    // Validate format and extract the data array if needed
+                    let validRecommendations = serverRecommendations;
+                    
+                    // Handle different possible formats from server
+                    if (!Array.isArray(serverRecommendations) && serverRecommendations.data && Array.isArray(serverRecommendations.data)) {
+                        validRecommendations = serverRecommendations.data;
+                        console.log('Extracted recommendations from nested data property');
+                    }
+                    
+                    if (Array.isArray(validRecommendations) && validRecommendations.length > 0) {
+                        // Cache the data locally
+                        cacheArtistRecommendations(artistData.id, validRecommendations);
+                        await displayRecommendations(validRecommendations, recommendationsContent);
+                        return;
+                    }
+                    
+                    console.log('Server returned recommendations but in an unusable format:', typeof serverRecommendations);
+                } else {
+                    console.log('No server-cached recommendations found for', artistData.name);
+                }
+            } catch (serverError) {
+                console.warn('Error fetching server-cached recommendations:', serverError);
+                // Continue to LLM generation if we have an API key
+            }
+        } else if (apiKey) {
+            // Only clear cache if forcing refresh AND we have an API key
             import('../services/cache-service.js').then(cacheModule => {
                 cacheModule.clearLLMCache(artistData.id);
                 console.log('Cleared recommendations cache for', artistData.name);
             });
+        }
+        
+        // If we don't have cached data AND we don't have an API key, we can't proceed
+        if (!apiKey) {
+            console.error('No API key available to fetch fresh recommendations');
+            displayRecommendationsError(recommendationsContent, apiKey);
+            return;
         }
         
         // Construct prompt for the LLM
@@ -71,7 +158,7 @@ export async function loadArtistRecommendations(artistData, apiKey, forceRefresh
         await displayRecommendations(recommendations, recommendationsContent);
     } catch (error) {
         console.error('Error loading artist recommendations:', error);
-        displayRecommendationsError(recommendationsContent);
+        displayRecommendationsError(recommendationsContent, apiKey);
     }
 }
 
@@ -811,7 +898,13 @@ async function getSpotifyImageUrl(recommendation) {
 async function displayRecommendations(recommendations, container) {
     container.innerHTML = '';
     
-    if (recommendations.length === 0) {
+    // Handle different data formats from server vs client
+    if (!Array.isArray(recommendations) && recommendations.data && Array.isArray(recommendations.data)) {
+        console.log('Extracting recommendations from data property');
+        recommendations = recommendations.data;
+    }
+    
+    if (!recommendations || recommendations.length === 0) {
         const emptyMessage = document.createElement('div');
         emptyMessage.className = 'message-box empty-state';
         emptyMessage.innerHTML = `
@@ -824,7 +917,7 @@ async function displayRecommendations(recommendations, container) {
     }
     
     // Filter out error recommendations
-    recommendations = recommendations.filter(rec => rec.type !== 'error');
+    recommendations = recommendations.filter(rec => rec && rec.type !== 'error');
     
     // If we filtered everything out, show the error message
     if (recommendations.length === 0) {
@@ -1071,12 +1164,51 @@ async function displayRecommendations(recommendations, container) {
     }
 }
 
-function displayRecommendationsError(container) {
+function displayRecommendationsError(container, apiKey = null) {
     container.innerHTML = '';
     
     const errorMessage = document.createElement('div');
-    errorMessage.className = 'alert alert-error';
-    errorMessage.textContent = 'Unable to load artist recommendations. Please check your API key or try again later.';
+    
+    if (apiKey) {
+        // Error when we had an API key but generation failed
+        errorMessage.className = 'alert alert-error';
+        errorMessage.innerHTML = `
+            <h3>Generation Error</h3>
+            <p>We couldn't generate recommendations for this artist using the AI service.</p>
+            <p>This could be due to:</p>
+            <ul>
+                <li>API key validation issues</li>
+                <li>Temporary service unavailability</li>
+                <li>Limited information available for this artist</li>
+            </ul>
+            <p>You can try again later or try another artist.</p>
+        `;
+    } else {
+        // Error when no API key and no cached data
+        errorMessage.className = 'message-box info-state';
+        errorMessage.innerHTML = `
+            <h3>No Recommendations Available</h3>
+            <p>We don't have cached recommendations for this artist yet.</p>
+            <p>You can:</p>
+            <ul>
+                <li>Provide an OpenAI API key to generate recommendations</li>
+                <li>Try one of our featured artists with pre-cached data</li>
+                <li>Check back later as we continue to add more artists to our cache</li>
+            </ul>
+            <div class="text-center mt-3">
+                <button class="btn btn-primary add-api-key-btn">Add API Key</button>
+            </div>
+        `;
+    }
     
     container.appendChild(errorMessage);
+    
+    // Add event listener to API key button if it exists
+    const apiKeyButton = errorMessage.querySelector('.add-api-key-btn');
+    if (apiKeyButton) {
+        apiKeyButton.addEventListener('click', () => {
+            // Show the API key modal
+            document.getElementById('apiKeyModal').style.display = 'block';
+        });
+    }
 }

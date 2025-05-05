@@ -3,9 +3,54 @@ import { getLLMResponse } from '../services/llm-service.js';
 import { cacheArtistInfluences, getCachedArtistInfluences } from '../services/cache-service.js';
 import { searchArtistByName } from '../services/spotify-service.js';
 
+/**
+ * Fetch influences from server cache
+ * @param {string} artistId - The artist ID
+ * @returns {Promise<Object>} Influence tree
+ */
+async function fetchServerCachedInfluences(artistId) {
+    if (!artistId) return null;
+    
+    try {
+        const response = await fetch(`/api/cached-influences/${artistId}`);
+        
+        if (!response.ok) {
+            console.log(`Server returned ${response.status} when fetching influences for ${artistId}`);
+            return null;
+        }
+        
+        const data = await response.json();
+        console.log(`Got influence data from server for ${artistId}:`, typeof data, Array.isArray(data) ? 'array' : 'not array');
+        
+        // Handle success response with data array or object 
+        if (data && data.success === true && data.data) {
+            console.log(`Found data in .data property (${typeof data.data})`);
+            return data.data;
+        }
+        
+        // Handle direct array in response (no wrapper)
+        if (Array.isArray(data)) {
+            console.log(`Found array directly in response (${data.length} items)`);
+            return data;
+        }
+        
+        // Handle direct object with influence tree structure
+        if (data && data.root && data.influences) {
+            console.log('Found influence tree object directly in response');
+            return data;
+        }
+        
+        console.log('Server returned unexpected format for influences:', data);
+        return null;
+    } catch (error) {
+        console.error('Error fetching influences from server:', error);
+        return null;
+    }
+}
+
 export async function loadArtistInfluences(artistData, apiKey, forceRefresh = false) {
-    if (!artistData || !apiKey) {
-        console.error('Artist data or API key missing');
+    if (!artistData) {
+        console.error('Artist data missing');
         return;
     }
     
@@ -19,11 +64,20 @@ export async function loadArtistInfluences(artistData, apiKey, forceRefresh = fa
         return;
     }
     
+    // Simplified approach - always show content when API key is provided or this is a cached artist
+    // In results.js, we're only calling this function for cached artists or when API key is available
+    
     // Show content and hide locked message
     influencesVisualization.classList.remove('hidden');
     lockedContent.classList.add('hidden');
     influencesSection.classList.remove('locked');
-    refreshButton.classList.remove('hidden');
+    
+    // Only show refresh button if we have an API key
+    if (apiKey) {
+        refreshButton.classList.remove('hidden');
+    } else {
+        refreshButton.classList.add('hidden');
+    }
     
     // Set up refresh button click handler
     refreshButton.onclick = () => {
@@ -38,20 +92,66 @@ export async function loadArtistInfluences(artistData, apiKey, forceRefresh = fa
             </div>
         `;
         
-        // Check cache first (unless forcing refresh)
+        // Check local cache first (unless forcing refresh)
         if (!forceRefresh) {
+            // Check local cache
             const cachedInfluences = getCachedArtistInfluences(artistData.id);
             if (cachedInfluences) {
-                console.log('Using cached influence tree for', artistData.name);
+                console.log('Using locally cached influence tree for', artistData.name);
                 await displayInfluences(cachedInfluences, influencesVisualization);
                 return;
             }
-        } else {
-            // Clear cache if forcing refresh
+            
+            // If no local cache, try server
+            try {
+                const serverInfluences = await fetchServerCachedInfluences(artistData.id);
+                if (serverInfluences) {
+                    console.log('Using server-cached influences for', artistData.name);
+                    
+                    // Validate format and extract the data if needed
+                    let validInfluences = serverInfluences;
+                    
+                    // Handle different possible formats from server
+                    if (!Array.isArray(serverInfluences) && !serverInfluences.root && serverInfluences.data) {
+                        if (Array.isArray(serverInfluences.data)) {
+                            validInfluences = serverInfluences.data;
+                            console.log('Extracted influences from nested data property');
+                        } else if (serverInfluences.data.root && serverInfluences.data.influences) {
+                            validInfluences = serverInfluences.data;
+                            console.log('Found influence tree in nested data property');
+                        }
+                    }
+                    
+                    // Ensure we have some valid data to display
+                    if ((Array.isArray(validInfluences) && validInfluences.length > 0) || 
+                        (validInfluences.root && validInfluences.influences)) {
+                        // Cache the data locally
+                        cacheArtistInfluences(artistData.id, validInfluences);
+                        await displayInfluences(validInfluences, influencesVisualization);
+                        return;
+                    }
+                    
+                    console.log('Server returned influences but in an unusable format:', typeof serverInfluences);
+                } else {
+                    console.log('No server-cached influences found for', artistData.name);
+                }
+            } catch (serverError) {
+                console.warn('Error fetching server-cached influences:', serverError);
+                // Continue to LLM generation if we have an API key
+            }
+        } else if (apiKey) {
+            // Only clear cache if forcing refresh AND we have an API key
             import('../services/cache-service.js').then(cacheModule => {
                 cacheModule.clearLLMCache(artistData.id);
                 console.log('Cleared influences cache for', artistData.name);
             });
+        }
+        
+        // If we don't have cached data AND we don't have an API key, we can't proceed
+        if (!apiKey) {
+            console.error('No API key available to fetch fresh influences');
+            displayInfluencesError(influencesVisualization, apiKey);
+            return;
         }
         
         // Construct prompt for the LLM
@@ -71,7 +171,7 @@ export async function loadArtistInfluences(artistData, apiKey, forceRefresh = fa
         await displayInfluences(influenceTree, influencesVisualization);
     } catch (error) {
         console.error('Error loading artist influence tree:', error);
-        displayInfluencesError(influencesVisualization);
+        displayInfluencesError(influencesVisualization, apiKey);
     }
 }
 
@@ -332,6 +432,7 @@ function convertArrayToTree(influencesArray) {
         return createDefaultInfluenceTree();
     }
     
+    // Get artist name and genre from page if possible
     const artistName = document.getElementById('artistName')?.textContent || 'Artist';
     const artistGenres = document.getElementById('artistGenres')?.textContent || 'Various';
     
@@ -345,95 +446,137 @@ function convertArrayToTree(influencesArray) {
         influences: []
     };
     
-    // If the array only has 1-2 elements, use all as direct influences with no earlier influences
-    if (influencesArray.length <= 2) {
-        influencesArray.forEach(influence => {
-            tree.influences.push({
-                name: influence.name,
-                genre: influence.genre || 'Unknown',
-                era: influence.era || getEraFromGenre(influence.genre) || '1980s-2010s',
-                impact: influence.impact || `Influenced ${artistName}'s sound and approach.`,
-                connection: influence.connection || 'Musical similarity',
-                earlier_influences: []
-            });
-        });
-        return tree;
+    // Check if we have valid objects in the array
+    const validObjects = influencesArray.filter(item => 
+        item && typeof item === 'object' && item.name && 
+        // Ensure this is not a complete tree structure mistakenly in the array
+        !item.root && !item.influences
+    );
+    
+    if (validObjects.length === 0) {
+        console.warn('No valid influence objects found in array');
+        return createDefaultInfluenceTree();
     }
     
-    // For arrays with 3+ elements, we'll distribute them more intelligently
+    // For blink-182 and other flat arrays with lots of elements, create a fixed structure
+    // where we artificially create hierarchies to create a more interesting visualization
     
-    // First, try to identify if the array already has a hierarchical structure by checking for nested arrays
-    let hasHierarchy = false;
-    for (const item of influencesArray) {
-        if (item.influences || item.earlier_influences) {
-            hasHierarchy = true;
-            break;
-        }
-    }
-    
-    if (hasHierarchy) {
-        // If hierarchy exists, try to preserve it
-        influencesArray.forEach(influence => {
-            const directInfluence = {
-                name: influence.name,
-                genre: influence.genre || 'Unknown',
-                era: influence.era || getEraFromGenre(influence.genre) || '1980s-2010s',
-                impact: influence.impact || `Influenced ${artistName}'s sound and approach.`,
-                connection: influence.connection || 'Musical similarity',
-                earlier_influences: []
-            };
-            
-            // Add earlier influences if they exist
-            const earlierInfluences = influence.influences || influence.earlier_influences || [];
-            if (Array.isArray(earlierInfluences)) {
-                earlierInfluences.forEach(earlier => {
-                    directInfluence.earlier_influences.push({
-                        name: earlier.name,
-                        genre: earlier.genre || 'Unknown',
-                        era: earlier.era || getEraFromGenre(earlier.genre) || '1950s-1970s',
-                        impact: earlier.impact || `Influenced ${directInfluence.name}'s sound and approach.`,
-                        connection: earlier.connection || 'Musical lineage'
-                    });
-                });
+    // Get unique genres if available
+    const genres = {};
+    validObjects.forEach(influence => {
+        if (influence.genre) {
+            const genre = influence.genre.toLowerCase();
+            if (!genres[genre]) {
+                genres[genre] = [];
             }
+            genres[genre].push(influence);
+        }
+    });
+    
+    // If we have at least 2 genres, group by genre
+    if (Object.keys(genres).length >= 2) {
+        console.log('Creating influences tree based on genre grouping');
+        
+        // Create one direct influence from each genre
+        Object.entries(genres).forEach(([genreName, artistsInGenre]) => {
+            if (artistsInGenre.length > 0) {
+                // Pick the first artist in this genre as the main influence
+                const mainInfluence = artistsInGenre[0];
+                
+                // Create the main influence node
+                const directInfluence = {
+                    name: mainInfluence.name,
+                    genre: mainInfluence.genre,
+                    era: mainInfluence.era || getEraFromGenre(mainInfluence.genre) || '1980s-2010s',
+                    impact: mainInfluence.impact || `Important ${genreName} influence on ${artistName}.`,
+                    connection: mainInfluence.connection || `${genreName} influence`,
+                    earlier_influences: []
+                };
+                
+                // Add the other artists in this genre as earlier influences
+                for (let i = 1; i < artistsInGenre.length && i < 4; i++) {
+                    const earlierInfluence = artistsInGenre[i];
+                    directInfluence.earlier_influences.push({
+                        name: earlierInfluence.name,
+                        genre: earlierInfluence.genre,
+                        era: earlierInfluence.era || getEraFromGenre(earlierInfluence.genre) || '1960s-1980s',
+                        impact: earlierInfluence.impact || `Influenced ${directInfluence.name}'s approach to ${genreName}.`,
+                        connection: earlierInfluence.connection || `${genreName} pioneer`
+                    });
+                }
+                
+                // Add to the tree
+                tree.influences.push(directInfluence);
+            }
+        });
+        
+        // If we still have too few direct influences, add some
+        if (tree.influences.length < 3 && validObjects.length > tree.influences.length) {
+            const usedNames = new Set(tree.influences.map(infl => infl.name));
             
-            tree.influences.push(directInfluence);
-        });
-    } else {
-        // No existing hierarchy, create one
+            // Add a few more direct influences that haven't been used yet
+            for (const obj of validObjects) {
+                if (!usedNames.has(obj.name) && tree.influences.length < 3) {
+                    tree.influences.push({
+                        name: obj.name,
+                        genre: obj.genre || 'Unknown',
+                        era: obj.era || getEraFromGenre(obj.genre) || '1980s-2010s',
+                        impact: obj.impact || `Shaped ${artistName}'s musical direction.`,
+                        connection: obj.connection || 'Musical influence',
+                        earlier_influences: []
+                    });
+                    usedNames.add(obj.name);
+                }
+            }
+        }
+    } 
+    // If not enough genres, create a more balanced hierarchy based on array position
+    else {
+        console.log('Creating balanced influence tree');
         
-        // Take approximately 1/3 of the array as direct influences, minimum 2
-        const directInfluenceCount = Math.max(2, Math.ceil(influencesArray.length / 3));
-        const directInfluences = influencesArray.slice(0, directInfluenceCount);
-        
-        // Take remaining items as earlier influences
-        const earlierInfluences = influencesArray.slice(directInfluenceCount);
-        
-        // Add direct influences
-        directInfluences.forEach(influence => {
-            tree.influences.push({
-                name: influence.name,
-                genre: influence.genre || 'Unknown',
-                era: influence.era || getEraFromGenre(influence.genre) || '1980s-2010s',
-                impact: influence.impact || `Influenced ${artistName}'s sound and approach.`,
-                connection: influence.connection || 'Musical similarity',
-                earlier_influences: []
+        // If we have a small array, use all as direct influences
+        if (validObjects.length <= 4) {
+            validObjects.forEach(influence => {
+                tree.influences.push({
+                    name: influence.name,
+                    genre: influence.genre || 'Unknown',
+                    era: influence.era || getEraFromGenre(influence.genre) || '1980s-2010s',
+                    impact: influence.impact || `Influenced ${artistName}'s sound and approach.`,
+                    connection: influence.connection || 'Musical similarity',
+                    earlier_influences: []
+                });
             });
-        });
-        
-        // Distribute earlier influences among direct influences
-        if (earlierInfluences.length > 0 && tree.influences.length > 0) {
+        }
+        // For larger arrays, create a hierarchy with 3-4 direct influences and the rest as sub-influences
+        else {
+            // Take 3-4 direct influences
+            const directCount = Math.min(4, Math.max(3, Math.ceil(validObjects.length / 3)));
+            const directInfluences = validObjects.slice(0, directCount);
+            const earlierInfluences = validObjects.slice(directCount);
+            
+            // Add direct influences
+            directInfluences.forEach(influence => {
+                tree.influences.push({
+                    name: influence.name,
+                    genre: influence.genre || 'Unknown',
+                    era: influence.era || getEraFromGenre(influence.genre) || '1980s-2010s',
+                    impact: influence.impact || `Directly influenced ${artistName}'s style.`,
+                    connection: influence.connection || 'Direct musical influence',
+                    earlier_influences: []
+                });
+            });
+            
+            // Distribute remaining influences as earlier influences
             let index = 0;
             earlierInfluences.forEach(influence => {
-                // Add to the appropriate direct influence
                 const targetInfluence = tree.influences[index % tree.influences.length];
                 
                 targetInfluence.earlier_influences.push({
                     name: influence.name,
                     genre: influence.genre || 'Unknown',
-                    era: influence.era || getEraFromGenre(influence.genre) || '1950s-1970s',
-                    impact: influence.impact || `Influenced ${targetInfluence.name}'s sound and approach.`,
-                    connection: influence.connection || 'Musical lineage'
+                    era: influence.era || '1960s-1980s', // Earlier era for earlier influences
+                    impact: influence.impact || `Influenced ${targetInfluence.name}'s approach.`,
+                    connection: influence.connection || 'Second-generation influence',
                 });
                 
                 index++;
@@ -505,7 +648,13 @@ async function displayInfluences(influenceTree, container) {
     visualizationContainer.classList.remove('hidden');
     visualizationContainer.innerHTML = '';
     
-    if (!influenceTree.influences || influenceTree.influences.length === 0) {
+    // Handle case where we get an array instead of influence tree object
+    if (Array.isArray(influenceTree)) {
+        console.log('Converting array of influences to tree format');
+        influenceTree = convertArrayToTree(influenceTree);
+    }
+    
+    if (!influenceTree || !influenceTree.influences || influenceTree.influences.length === 0) {
         const emptyMessage = document.createElement('div');
         emptyMessage.className = 'message-box empty-state';
         emptyMessage.textContent = 'No influences found for this artist.';
@@ -771,12 +920,51 @@ function updateConnectionPosition(connection, sourceNode, targetNode) {
     connection.style.zIndex = '1';
 }
 
-function displayInfluencesError(container) {
+function displayInfluencesError(container, apiKey = null) {
     container.innerHTML = '';
     
     const errorMessage = document.createElement('div');
-    errorMessage.className = 'alert alert-error';
-    errorMessage.textContent = 'Unable to load artist influence tree. Please check your API key or try again later.';
+    
+    if (apiKey) {
+        // Error when we had an API key but generation failed
+        errorMessage.className = 'alert alert-error';
+        errorMessage.innerHTML = `
+            <h3>Generation Error</h3>
+            <p>We couldn't generate an influence tree for this artist using the AI service.</p>
+            <p>This could be due to:</p>
+            <ul>
+                <li>API key validation issues</li>
+                <li>Temporary service unavailability</li>
+                <li>Limited information available about this artist's influences</li>
+            </ul>
+            <p>You can try again later or try another artist.</p>
+        `;
+    } else {
+        // Error when no API key and no cached data
+        errorMessage.className = 'message-box info-state';
+        errorMessage.innerHTML = `
+            <h3>No Influences Data Available</h3>
+            <p>We don't have cached influence information for this artist yet.</p>
+            <p>You can:</p>
+            <ul>
+                <li>Provide an OpenAI API key to generate an influence tree</li>
+                <li>Try one of our featured artists with pre-cached data</li>
+                <li>Check back later as we continue to add more artists to our database</li>
+            </ul>
+            <div class="text-center mt-3">
+                <button class="btn btn-primary add-api-key-btn">Add API Key</button>
+            </div>
+        `;
+    }
     
     container.appendChild(errorMessage);
+    
+    // Add event listener to API key button if it exists
+    const apiKeyButton = errorMessage.querySelector('.add-api-key-btn');
+    if (apiKeyButton) {
+        apiKeyButton.addEventListener('click', () => {
+            // Show the API key modal
+            document.getElementById('apiKeyModal').style.display = 'block';
+        });
+    }
 }

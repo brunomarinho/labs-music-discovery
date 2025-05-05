@@ -23,6 +23,8 @@ The application uses a hybrid data retrieval strategy, combining structured data
 - **Direct influences** derived from public sources and interviews
 - **BYOK (Bring Your Own Key)** model for LLM API usage
 - **Progressive enhancement** - basic functionality without API key, enhanced with user-provided key
+- **Featured artists** showcase popular artists without requiring an API key
+- **Server-side caching** for pre-populated artist data, recommendations, and influences
 - **Client-side caching** for efficient API usage
 
 ## Technology Stack
@@ -32,7 +34,8 @@ The application uses a hybrid data retrieval strategy, combining structured data
 - **Vanilla JavaScript (ES6+)** for functionality
 - **Modular code organization** using ES6 modules
 - **Node.js with Express** for server-side API proxy
-- **Local Storage** for caching and API key management
+- **File-based server caching** for pre-populated content
+- **Local Storage** for client-side caching and API key management
 
 ## Getting Started
 
@@ -42,6 +45,8 @@ The application uses a hybrid data retrieval strategy, combining structured data
    ```
    SPOTIFY_CLIENT_ID=your_spotify_client_id
    SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+   # Optional, for cache management
+   ADMIN_API_KEY=your_admin_key
    ```
 4. Install dependencies
    ```
@@ -52,8 +57,49 @@ The application uses a hybrid data retrieval strategy, combining structured data
    npm start
    ```
 6. Open http://localhost:3000 in your browser
-7. Search for an artist
+7. Search for an artist or explore featured artists
 8. To unlock enhanced features (recommendations and influences), add your OpenAI API key through the UI
+
+## Server-Side Caching
+
+The application includes server-side caching to pre-populate data for featured artists, allowing new users to experience core functionality without an API key.
+
+### Building the Cache
+
+1. Configure your featured artists in `js/data/featured-artists.js` by simply specifying artist names
+2. Build the server cache using the cache builder script:
+   ```
+   # Basic cache: Artist data only
+   node cache-builder.js
+
+   # Full cache: Artist data + LLM recommendations and influences
+   node cache-builder.js --with-llm-data your_openai_api_key
+   ```
+3. The cache will be stored in the `server-cache` directory
+
+### Cache Management
+
+- The server automatically loads the cache on startup
+- You can rebuild the cache at any time using the command above
+- A status message will show if the cache is empty or needs to be built
+- Cache entries persist between server restarts
+- Users can still get dynamic data with their own API key
+
+### Featured Artists Management
+
+Edit the `js/data/featured-artists.js` file to update the featured artists list. You only need to specify artist names - the system will resolve them to Spotify IDs automatically:
+
+```javascript
+// Example: To change featured artists, just edit the names
+export const FEATURED_ARTISTS = {
+    rock: [
+        'blink-182',
+        'Pete Townshend',  
+        'Robert Johnson'
+    ],
+    // Other categories...
+};
+```
 
 ## API Usage
 
@@ -67,10 +113,11 @@ The application uses two primary data sources:
 ```
 /artist-explorer
   /css
-    main.css       - Base styles and variables
-    search.css     - Search functionality styles
-    results.css    - Results page styles
-    components.css - Reusable component styles
+    main.css           - Base styles and variables
+    search.css         - Search functionality styles
+    results.css        - Results page styles
+    components.css     - Reusable component styles
+    featured-artists.css - Featured artists section styles
   /js
     /components
       search-bar.js        - Search autocomplete functionality
@@ -79,15 +126,25 @@ The application uses two primary data sources:
       recommendations.js   - Artist recommendations section
       influences.js        - Artist influences section
       api-key-modal.js     - API key management modal
+      featured-artists.js  - Featured artists grid component
+    /data
+      featured-artists.js  - Featured artists configuration
     /services
       spotify-service.js   - Spotify API interactions
       llm-service.js       - LLM API interactions
       cache-service.js     - Local storage caching
+      prefetch-service.js  - Data prefetching logic
     /utils
       dom-helpers.js       - DOM utility functions
     main.js                - Main entry point
     results.js             - Results page logic
+  /server-cache           - Server cache directory (created at runtime)
+    artist-data.json      - Cached artist data
+    recommendations.json  - Cached recommendations
+    influences.json       - Cached influences
   server.js               - Express server for API proxy
+  server-cache.js         - Server-side caching module
+  cache-builder.js        - Script to build server cache
   .env                    - Environment variables (not committed)
   .env.example            - Example environment variables
   index.html              - Search page
@@ -106,4 +163,6 @@ The application uses two primary data sources:
 
 - All OpenAI API keys are stored client-side only
 - Spotify API credentials are securely stored in server environment variables
+- Server-side cache contains only public artist data and LLM-generated content
+- Admin API endpoint for cache management is protected by an API key
 - No user data is collected or stored on the server
