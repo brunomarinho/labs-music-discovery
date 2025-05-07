@@ -190,11 +190,12 @@
 }
 
 .tag {
-    padding: 0.35rem 0.75rem;
-    background-color: var(--background-alt);
-    border-radius: 50px;
+    padding: 0.35rem 0;
+    background-color: transparent;
+    border-radius: 0;
     font-size: 0.85rem;
     color: var(--text-secondary);
+    margin-right: 1rem;
 }
 
 /* Pills Navigation */
@@ -208,7 +209,7 @@
 
 .pill {
     padding: 0.5rem 1rem;
-    border-radius: 50px;
+    border-radius: 4px;
     font-size: 0.9rem;
     font-weight: 500;
     background-color: var(--background-alt);
@@ -289,10 +290,10 @@
     background: #fff;
     margin: 5% auto;
     padding: 30px;
-    border-radius: 8px;
+    border-radius: 0;
     width: 90%;
     max-width: 600px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     position: relative;
 }
 

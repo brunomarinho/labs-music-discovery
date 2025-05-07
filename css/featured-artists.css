@@ -20,22 +20,21 @@
 .featured-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
+    gap: var(--card-spacing);
     margin-top: 1.5rem;
 }
 
 .artist-card {
-    background-color: var(--background-alt);
-    border-radius: var(--border-radius);
+    background-color: transparent;
+    border-radius: var(--album-border-radius);
     overflow: hidden;
-    box-shadow: 0 2px 8px var(--shadow-color);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: var(--album-card-shadow);
+    transition: transform var(--transition-speed);
     cursor: pointer;
 }
 
 .artist-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px var(--shadow-color);
+    transform: var(--album-hover-transform);
 }
 
 .artist-image-container {
@@ -48,25 +47,25 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
+    transition: transform var(--transition-speed);
 }
 
 .artist-card:hover .artist-image {
-    transform: scale(1.05);
+    transform: none;
 }
 
 .artist-card-content {
-    padding: 1rem;
+    padding: 0.5rem 0;
 }
 
 .artist-name {
-    font-size: 1.2rem;
-    margin-bottom: 0.25rem;
+    font-size: var(--item-title-size);
+    margin-bottom: var(--item-spacing);
     font-weight: 600;
 }
 
 .artist-genres {
-    font-size: 0.9rem;
+    font-size: var(--item-subtitle-size);
     color: var(--text-secondary);
     margin: 0;
 }

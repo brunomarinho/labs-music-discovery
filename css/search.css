@@ -32,13 +32,13 @@
     padding: 1rem 3rem 1rem 1.5rem;
     font-size: 1.1rem;
     border: 1px solid var(--border-color);
-    border-radius: 50px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    box-shadow: none;
     transition: all var(--transition-speed);
 }
 
 .search-input:focus {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: none;
     border-color: var(--primary-color);
 }
 
@@ -74,8 +74,8 @@
     left: 0;
     right: 0;
     background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    border-radius: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     margin-top: 0.5rem;
     max-height: 300px;
     overflow-y: auto;
@@ -134,7 +134,7 @@
     padding: 0.6rem 2.5rem 0.6rem 1rem;
     font-size: 0.9rem;
     border: 1px solid var(--border-color);
-    border-radius: 50px;
+    border-radius: 4px;
     transition: all var(--transition-speed);
 }
 

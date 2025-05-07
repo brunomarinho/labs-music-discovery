@@ -1090,13 +1090,6 @@ async function displayRecommendations(recommendations, container) {
                 <div class="card-name">${recommendation.name}</div>
                 <div class="card-type">
                     <span>${recommendation.type === 'artist' ? 'Artist' : 'Album'}</span>
-                    <button class="show-details-button" aria-label="Show details">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                    </span>
                 </div>
             </div>
             <div class="card-details">
@@ -1105,56 +1098,22 @@ async function displayRecommendations(recommendations, container) {
             </div>
         `;
         
-        // Add click handler for the info button to toggle details
-        const detailsButton = recommendationCard.querySelector('.show-details-button');
-        const details = recommendationCard.querySelector('.card-details');
-        
-        if (detailsButton && details) {
-            detailsButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                details.classList.toggle('show-details');
-            });
-        }
-        
-        // Add hover effect to show details
-        recommendationCard.addEventListener('mouseenter', () => {
-            if (details) details.classList.add('show-details');
-        });
-        
-        recommendationCard.addEventListener('mouseleave', () => {
-            if (details) details.classList.remove('show-details');
-        });
-        
-        // Make sure action buttons still work with details showing
+        // Make sure action buttons still work
         const actionButtons = recommendationCard.querySelectorAll('.card-actions a');
-        if (actionButtons.length > 0 && details) {
+        if (actionButtons.length > 0) {
             actionButtons.forEach(button => {
-                // Ensure the buttons are clickable regardless of details state
                 button.addEventListener('click', (e) => {
                     e.stopPropagation();
                 });
-                
-                // Ensure z-index is applied when details are shown
-                button.style.zIndex = '15';
-            });
-            
-            // Also modify the details to not interfere with button clicks
-            details.addEventListener('click', (e) => {
-                // Don't interfere with button clicks
-                if (e.target.closest('.card-actions') || e.target.closest('a') || e.target.closest('button.show-details-button')) {
-                    e.stopPropagation();
-                    return;
-                }
             });
         }
         
         // Add click event to make card clickable for Spotify if URL is available
-        // This is a fallback for compatibility with the previous behavior
-        if (spotifyUrl && !details.classList.contains('show-details')) {
+        if (spotifyUrl) {
             recommendationCard.style.cursor = 'pointer';
             recommendationCard.addEventListener('click', (e) => {
                 // Only trigger if not clicking a specific button or link
-                if (!e.target.closest('a') && !e.target.closest('button') && !details.classList.contains('show-details')) {
+                if (!e.target.closest('a') && !e.target.closest('button')) {
                     window.open(spotifyUrl, '_blank');
                 }
             });
