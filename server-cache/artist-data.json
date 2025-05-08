@@ -5,7 +5,7 @@
     },
     "followers": {
       "href": null,
-      "total": 8990557
+      "total": 8995335
     },
     "genres": [
       "pop punk",
@@ -45,7 +45,7 @@
     },
     "followers": {
       "href": null,
-      "total": 390181
+      "total": 390183
     },
     "genres": [
       "art rock"
@@ -189,7 +189,7 @@
     },
     "followers": {
       "href": null,
-      "total": 6997304
+      "total": 7001349
     },
     "genres": [],
     "href": "https://api.spotify.com/v1/artists/3eqjTLE0HfPfh78zjh6TqT",
@@ -438,7 +438,7 @@
     },
     "followers": {
       "href": null,
-      "total": 2678333
+      "total": 2679342
     },
     "genres": [
       "jazz",
@@ -484,7 +484,7 @@
     },
     "followers": {
       "href": null,
-      "total": 1772438
+      "total": 1773313
     },
     "genres": [
       "jazz",
@@ -563,7 +563,7 @@
     },
     "followers": {
       "href": null,
-      "total": 426070
+      "total": 426408
     },
     "genres": [
       "progressive rock",
@@ -601,7 +601,7 @@
     },
     "followers": {
       "href": null,
-      "total": 35583388
+      "total": 35607674
     },
     "genres": [],
     "href": "https://api.spotify.com/v1/artists/3fMbdgg4jU18AjLCKBhRSm",
@@ -624,7 +624,7 @@
       }
     ],
     "name": "Michael Jackson",
-    "popularity": 86,
+    "popularity": 85,
     "type": "artist",
     "uri": "spotify:artist:3fMbdgg4jU18AjLCKBhRSm"
   },
@@ -634,7 +634,7 @@
     },
     "followers": {
       "href": null,
-      "total": 8518345
+      "total": 8522636
     },
     "genres": [],
     "href": "https://api.spotify.com/v1/artists/6tbjWDEIzxoDsBA1FuhfPW",
@@ -667,7 +667,7 @@
     },
     "followers": {
       "href": null,
-      "total": 139432
+      "total": 139554
     },
     "genres": [
       "jazz"

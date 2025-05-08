@@ -288,5 +288,45 @@
       "month": "May",
       "source": "Guitar Player Magazine"
     }
+  ],
+  "24Wa5wIZIo1sPkzVGP0B5p": [
+    {
+      "name": "Artist recommendations coming soon",
+      "type": "info",
+      "description": "We're currently gathering recent recommendations from this artist.",
+      "year": "2025",
+      "month": "May",
+      "source": "Generated placeholder"
+    }
+  ],
+  "3fMbdgg4jU18AjLCKBhRSm": [
+    {
+      "name": "Artist recommendations coming soon",
+      "type": "info",
+      "description": "We're currently gathering recent recommendations from this artist.",
+      "year": "2025",
+      "month": "May",
+      "source": "Generated placeholder"
+    }
+  ],
+  "0kbYTNQb4Pb1rPbbaF0pT4": [
+    {
+      "name": "Artist recommendations coming soon",
+      "type": "info",
+      "description": "We're currently gathering recent recommendations from this artist.",
+      "year": "2025",
+      "month": "May",
+      "source": "Generated placeholder"
+    }
+  ],
+  "2hGh5VOeeqimQFxqXvfCUf": [
+    {
+      "name": "Artist recommendations coming soon",
+      "type": "info",
+      "description": "We're currently gathering recent recommendations from this artist.",
+      "year": "2025",
+      "month": "May",
+      "source": "Generated placeholder"
+    }
   ]
 }

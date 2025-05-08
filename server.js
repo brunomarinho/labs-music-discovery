@@ -300,14 +300,25 @@ app.listen(PORT, () => {
   
   console.log(`Server cache initialized with ${artistCount} total artists`);
   console.log(`Featured artists on homepage: ${featuredArtists.length}`);
-  console.log(`Artists with recommendations: ${recommendationsCount}`);
+  console.log(`Artists with recommendations: ${recommendationsCount}/${artistCount}`);
   
-  // If the cache is empty and we have Spotify credentials, suggest running the cache builder
-  if (artistCount === 0 && SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET) {
-    console.log('\n⚠️  Featured artists cache is empty!');
+  if (recommendationsCount < artistCount) {
+    console.log(`⚠️  Notice: ${artistCount - recommendationsCount} artists don't have recommendations yet.`)
+  }
+  
+  // If the cache is empty or if not all artists have recommendations, suggest running the cache builder
+  if ((artistCount === 0 || recommendationsCount < artistCount) && SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET) {
+    if (artistCount === 0) {
+      console.log('\n⚠️  Featured artists cache is empty!');
+    } else if (recommendationsCount < artistCount) {
+      console.log('\n⚠️  Some artists are missing recommendations!');
+    }
+    
     console.log('Run the following command to build the cache:');
     console.log('  node cache-builder.js');
-    console.log('\nTo include recommendations (needs OpenAI API key):');
-    console.log('  node cache-builder.js --with-llm-data <YOUR_OPENAI_API_KEY>\n');
+    console.log('\nTo generate recommendations (needs OpenAI API key):');
+    console.log('  node cache-builder.js --with-llm-data <YOUR_OPENAI_API_KEY>');
+    console.log('\nTo force refresh existing recommendations:');
+    console.log('  node cache-builder.js --with-llm-data <YOUR_OPENAI_API_KEY> --force\n');
   }
 });

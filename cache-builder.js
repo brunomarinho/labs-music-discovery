@@ -3,11 +3,12 @@
  * 
  * This script can be run to build the server-side cache for featured artists.
  * It fetches artist data from Spotify and (optionally) generates recommendations
- * and influences using the OpenAI API.
+ * using the OpenAI API.
  * 
  * Usage: 
  *   - Basic: node cache-builder.js
- *   - With LLM data: node cache-builder.js --with-llm-data <API_KEY>
+ *   - With Recommendations: node cache-builder.js --with-llm-data <API_KEY>
+ *   - Force Refresh Recommendations: node cache-builder.js --with-llm-data <API_KEY> --force
  */
 
 require('dotenv').config();
@@ -21,6 +22,8 @@ let openAiApiKey = null;
 // Command line args
 const args = process.argv.slice(2);
 const withLlmData = args.includes('--with-llm-data');
+const forceRefresh = args.includes('--force');
+
 if (withLlmData) {
     const keyIndex = args.indexOf('--with-llm-data') + 1;
     if (args[keyIndex] && !args[keyIndex].startsWith('--')) {
@@ -242,8 +245,11 @@ async function buildCache() {
             // Save artist data to cache
             cache.saveArtistData(artistData.id, artistData);
             
-            // Generate LLM data if requested
-            if (withLlmData && openAiApiKey) {
+            // Check if this artist already has recommendations
+            const existingRecommendations = cache.getArtistRecommendations(artistData.id);
+            
+            // Generate LLM data if requested and if we don't already have recommendations
+            if ((withLlmData && openAiApiKey) && (!existingRecommendations || forceRefresh)) {
                 console.log(`Generating LLM data for ${artistName}...`);
                 
                 // Get recommendations
@@ -253,10 +259,26 @@ async function buildCache() {
                 if (recommendations && recommendations.length > 0) {
                     console.log(`Got ${recommendations.length} recommendations for ${artistName}`);
                     cache.saveArtistRecommendations(artistData.id, recommendations);
+                } else {
+                    // If we couldn't get recommendations, create a placeholder
+                    const placeholder = [{
+                        name: "Artist recommendations coming soon",
+                        type: "info",
+                        description: "We're currently gathering recent recommendations from this artist.",
+                        year: new Date().getFullYear().toString(),
+                        month: new Date().toLocaleString('default', { month: 'long' }),
+                        source: "Generated placeholder"
+                    }];
+                    console.log(`Creating placeholder recommendations for ${artistName}`);
+                    cache.saveArtistRecommendations(artistData.id, placeholder);
                 }
                 
                 // Longer delay between artists to avoid rate limits
                 await new Promise(resolve => setTimeout(resolve, 3000));
+            } else if (existingRecommendations) {
+                console.log(`Artist ${artistName} already has ${existingRecommendations.length} cached recommendations`);
+            } else {
+                console.log(`Skipping recommendations for ${artistName} (no API key provided)`);
             }
         } catch (error) {
             console.error(`Error processing artist ${artistName}:`, error);
