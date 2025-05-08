@@ -1,0 +1,24 @@
+<div class="back-button">
+    <a href="index.html">&larr; Back to search</a>
+</div>
+
+<section id="artistHeader" class="artist-header loading">
+    <div class="artist-info">
+        <h1 id="artistName" class="skeleton-text">Artist Name</h1>
+    </div>
+</section>
+
+<section id="artistRecommendations" class="artist-recommendations section-card">
+    <h2>Recommends</h2>
+    <p class="subtitle">Found in the past 12 months from interviews, social media and videos.</p>
+    
+    <button id="refreshRecommendations" class="refresh-button hidden">Refresh Recommendations</button>
+    
+    <div class="locked-content" id="recommendationsLockedContent">
+        <p>Unlock artist recommendations by adding your OpenAI API key.</p>
+        <button id="unlockRecommendations" class="unlock-button">Add API Key</button>
+    </div>
+    <div id="recommendationsContent" class="recommendations-content">
+        <!-- Recommendations will be populated here -->
+    </div>
+</section>
