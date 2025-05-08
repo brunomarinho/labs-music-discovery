@@ -2,10 +2,10 @@
 
 /* Alert Component */
 .alert {
-    padding: 1rem;
+    padding: var(--space-s);
     border-radius: var(--border-radius);
-    margin-bottom: 1rem;
-    font-size: 0.95rem;
+    margin-bottom: var(--space-s);
+    font-size: var(--font-size-s);
 }
 
 .alert-info {
@@ -51,7 +51,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 2rem;
+    padding: var(--space-m);
 }
 
 .spinner.small {
@@ -78,16 +78,16 @@
     background-color: var(--secondary-color);
     color: white;
     text-align: center;
-    border-radius: 6px;
-    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    padding: var(--space-xs);
     position: absolute;
     z-index: 1;
     bottom: 125%;
     left: 50%;
     margin-left: -100px;
     opacity: 0;
-    transition: opacity 0.3s;
-    font-size: 0.85rem;
+    transition: opacity var(--transition-speed);
+    font-size: var(--font-size-xs);
 }
 
 .tooltip .tooltip-text::after {
@@ -109,10 +109,10 @@
 /* Badges */
 .badge {
     display: inline-block;
-    padding: 0.25rem 0.5rem;
+    padding: calc(var(--space-xs) / 2) var(--space-xs);
     border-radius: 50px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
     text-transform: uppercase;
 }
 
@@ -134,9 +134,9 @@
 
 /* Message box */
 .message-box {
-    padding: 1.5rem;
+    padding: var(--space-m);
     border-radius: var(--border-radius);
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-m);
     text-align: center;
 }
 
@@ -173,7 +173,7 @@
     justify-content: center;
     color: var(--text-secondary);
     transition: color var(--transition-speed);
-    padding: 0.5rem;
+    padding: var(--space-xs);
     border-radius: 50%;
 }
 
@@ -186,32 +186,32 @@
 .tag-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: var(--space-xs);
 }
 
 .tag {
-    padding: 0.35rem 0;
+    padding: calc(var(--space-xs) / 2) 0;
     background-color: transparent;
     border-radius: 0;
-    font-size: 0.85rem;
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
-    margin-right: 1rem;
+    margin-right: var(--space-s);
 }
 
 /* Pills Navigation */
 .pills-nav {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-m);
     overflow-x: auto;
-    padding-bottom: 0.5rem;
+    padding-bottom: var(--space-xs);
 }
 
 .pill {
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    font-weight: 500;
+    padding: var(--space-xs) var(--space-s);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-s);
+    font-weight: var(--font-weight-medium);
     background-color: var(--background-alt);
     cursor: pointer;
     white-space: nowrap;
@@ -232,29 +232,29 @@
     width: 100%;
     height: 8px;
     background-color: var(--background-alt);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     overflow: hidden;
 }
 
 .progress-bar-fill {
     height: 100%;
     background-color: var(--primary-color);
-    border-radius: 4px;
+    border-radius: var(--border-radius);
 }
 
 /* Divider */
 .divider {
     height: 1px;
     background-color: var(--border-color);
-    margin: 1.5rem 0;
+    margin: var(--space-m) 0;
 }
 
 .divider-text {
     display: flex;
     align-items: center;
-    margin: 1.5rem 0;
+    margin: var(--space-m) 0;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: var(--font-size-xs);
 }
 
 .divider-text::before, 
@@ -266,11 +266,11 @@
 }
 
 .divider-text::before {
-    margin-right: 1rem;
+    margin-right: var(--space-s);
 }
 
 .divider-text::after {
-    margin-left: 1rem;
+    margin-left: var(--space-s);
 }
 
 /* API Key Modal */
@@ -289,8 +289,8 @@
 .modal-content {
     background: #fff;
     margin: 5% auto;
-    padding: 30px;
-    border-radius: 0;
+    padding: var(--space-m);
+    border-radius: var(--border-radius);
     width: 90%;
     max-width: 600px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -299,83 +299,87 @@
 
 .close-button {
     position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 30px;
+    top: var(--space-s);
+    right: var(--space-s);
+    font-size: var(--font-size-l);
     cursor: pointer;
-    color: #555;
+    color: var(--text-secondary);
 }
 
 .api-key-modal h2 {
     margin-top: 0;
-    color: #333;
-    margin-bottom: 10px;
+    color: var(--text-color);
+    margin-bottom: var(--space-xs);
+    font-size: var(--font-size-m);
 }
 
 .api-key-modal h3 {
-    margin-top: 20px;
-    margin-bottom: 10px;
-    color: #444;
+    margin-top: var(--space-m);
+    margin-bottom: var(--space-xs);
+    color: var(--text-color);
+    font-size: var(--font-size-s);
 }
 
 .api-key-modal h4 {
-    margin-top: 15px;
-    margin-bottom: 5px;
-    color: #555;
+    margin-top: var(--space-s);
+    margin-bottom: var(--space-xs);
+    color: var(--text-secondary);
+    font-size: var(--font-size-s);
 }
 
 .api-key-modal form {
-    margin: 20px 0;
+    margin: var(--space-m) 0;
 }
 
 .api-key-modal label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
+    margin-bottom: var(--space-xs);
+    font-weight: var(--font-weight-medium);
 }
 
 .api-key-modal input[type="text"],
 .api-key-modal input[type="password"] {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
-    margin-bottom: 15px;
+    padding: var(--space-xs) var(--space-s);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-s);
+    margin-bottom: var(--space-s);
 }
 
 .submit-button {
     background-color: var(--primary-color);
     color: white;
     border: none;
-    padding: 12px 25px;
-    border-radius: 4px;
+    padding: var(--space-xs) var(--space-s);
+    border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: 16px;
-    font-weight: 500;
-    margin-top: 10px;
+    font-size: var(--font-size-s);
+    font-weight: var(--font-weight-medium);
+    margin-top: var(--space-xs);
     width: 100%;
 }
 
 .submit-button:hover {
-    background-color: #0654a5;
+    background-color: var(--primary-dark);
 }
 
 .instructions {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #eee;
+    margin-top: var(--space-m);
+    padding-top: var(--space-m);
+    border-top: 1px solid var(--border-color);
 }
 
 .instructions h3 {
-    color: #333;
-    margin-bottom: 10px;
+    color: var(--text-color);
+    margin-bottom: var(--space-xs);
+    font-size: var(--font-size-s);
 }
 
 .instructions ol {
-    margin-left: 20px;
-    line-height: 1.6;
-    margin-bottom: 20px;
+    margin-left: var(--space-m);
+    line-height: var(--line-height-normal);
+    margin-bottom: var(--space-m);
 }
 
 .instructions a {
@@ -388,20 +392,43 @@
 }
 
 .note {
-    margin-top: 15px;
-    font-size: 14px;
-    color: #666;
+    margin-top: var(--space-s);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
     font-style: italic;
+}
+
+/* Refresh Button */
+.refresh-button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    padding: var(--space-xs) var(--space-s);
+    margin-top: var(--space-xs);
+    margin-bottom: var(--space-s);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    display: inline-block;
+    transition: background-color var(--transition-speed);
+}
+
+.refresh-button:hover {
+    background-color: var(--primary-dark);
+}
+
+.refresh-button.hidden {
+    display: none;
 }
 
 /* Responsive Adjustments */
 @media (max-width: 480px) {
     .pills-nav {
-        padding-bottom: 0.75rem;
+        padding-bottom: var(--space-xs);
     }
     
     .pill {
-        padding: 0.4rem 0.85rem;
-        font-size: 0.85rem;
+        padding: calc(var(--space-xs) * 0.8) var(--space-xs);
+        font-size: var(--font-size-xs);
     }
 }

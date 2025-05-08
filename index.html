@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Artist Explorer</title>
+    <title>Rec'd</title>
+    <!-- Typekit font integration -->
+    <link rel="stylesheet" href="https://use.typekit.net/jtt4bay.css">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/search.css">
     <link rel="stylesheet" href="css/components.css">
@@ -13,16 +15,15 @@
 </head>
 <body>
     <header>
-        <div class="logo">Artist Explorer</div>
+        <div class="logo">Rec'd</div>
     </header>
     
     <main class="container">
         <section class="search-container">
-            <h1>Discover Artist Recommendations</h1>
-            <p class="subtitle">Find what your favorite artists recommend and who influenced them</p>
+            <h1>Find out what your favorite artists are listening</h1>
             
             <div class="search-bar-container" id="searchBarContainer">
-                <input type="text" id="artistSearch" class="search-input" placeholder="Search for an artist..." autocomplete="off">
+                <input type="text" id="artistSearch" class="search-input" placeholder="Search (i.e. Foo Fighters)" autocomplete="off">
                 <button class="search-button" id="searchButton">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"></circle>
@@ -33,11 +34,15 @@
             </div>
         </section>
         
-        <section id="featured-artists-container" class="featured-artists-container">
-            <!-- Featured artists will be loaded dynamically -->
-            <div class="loading-indicator">
-                <div class="spinner"></div>
-                <p>Loading featured artists...</p>
+        <section class="examples-section">
+            <h2>Check some examples</h2>
+            
+            <div id="examples-container" class="examples-container">
+                <!-- Examples will be loaded dynamically -->
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Loading examples...</p>
+                </div>
             </div>
         </section>
     </main>

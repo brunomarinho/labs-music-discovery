@@ -23,47 +23,23 @@
 
 /* Artist Header */
 .artist-header {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 2.5rem;
-    gap: 2.5rem;
-}
-
-.artist-image-container {
-    flex-shrink: 0;
-}
-
-.artist-image {
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background-color: var(--background-alt);
-    overflow: hidden;
-    box-shadow: none;
-}
-
-.artist-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    margin-bottom: 1.5rem;
 }
 
 .artist-info {
-    flex: 1;
-    padding-top: 0.5rem;
+    width: 100%;
 }
 
 .artist-info h1 {
-    margin-bottom: 0.75rem;
-    font-size: 2rem;
+    margin-bottom: 0.25rem;
+    font-size: 3rem;
     font-weight: 700;
 }
 
-.artist-genres {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1.25rem;
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 2rem;
 }
 
 .genre-tag {

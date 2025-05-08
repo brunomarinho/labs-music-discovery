@@ -3,11 +3,9 @@ import { initSearchBar } from './components/search-bar.js';
 import { loadArtistData } from './services/spotify-service.js';
 import { initApiKeyModal } from './components/api-key-modal.js';
 import { loadArtistRecommendations } from './components/recommendations.js';
-import { loadArtistInfluences } from './components/influences.js';
 import { 
     loadCachedApiKey, 
-    getCachedArtistRecommendations, 
-    getCachedArtistInfluences 
+    getCachedArtistRecommendations
 } from './services/cache-service.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -40,69 +38,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         // Update document title with artist name
-        document.title = `${artistData.name} - Artist Explorer`;
+        document.title = `${artistData.name} - Rec'd`;
         
         displayArtistHeader(artistData);
         
         // Check if we have cached data or an API key for enhanced features
         const apiKey = loadCachedApiKey();
         
-        // Check for cached recommendations and influences first
+        // Check for cached recommendations
         const cachedRecommendations = getCachedArtistRecommendations(artistData.id);
-        const cachedInfluences = getCachedArtistInfluences(artistData.id);
         
-        // Let's simplify and make sure all cached artists work
+        // Check if this artist is in our predefined list of featured artists or has cached recommendations
         try {
-            // Check if this artist is in our predefined list of featured artists
-            // This is a simple way to know if it's a cached artist
             const artistIsCached = await isArtistCached(artistId);
             console.log('Artist cached status check:', artistId, artistIsCached);
             
-            if (artistIsCached) {
-                console.log('This is a cached artist, loading content without API key');
-                // For cached artists, pass the API key if available, but always load content
-                loadArtistRecommendations(artistData, apiKey);
-                loadArtistInfluences(artistData, apiKey);
-            } else if (apiKey) {
-                // For non-cached artists, we need an API key
-                console.log('Non-cached artist but API key available, loading content');
-                loadArtistRecommendations(artistData, apiKey);
-                loadArtistInfluences(artistData, apiKey);
-            } else {
-                // For non-cached artists without API key, show limited content
-                console.log('Non-cached artist and no API key, showing limited content');
-            }
+            // First check for cached recommendations
+            const cachedRecommendations = getCachedArtistRecommendations(artistId);
+            const hasCachedRecommendations = cachedRecommendations && cachedRecommendations.length > 0;
             
-            // Only show prompts for API key if it's not a cached artist and we don't have an API key
-            if (!artistIsCached && !apiKey) {
-                console.log('Showing API key prompts for non-cached artist');
+            // Load recommendations in these cases:
+            // 1. Artist is cached (from featured artists)
+            // 2. We have cached recommendations
+            // 3. We have an API key to generate new recommendations
+            if (artistIsCached || hasCachedRecommendations || apiKey) {
+                console.log('Loading recommendations for', artistData.name);
+                loadArtistRecommendations(artistData, apiKey);
                 
-                // Set up unlock buttons event listeners
-                document.querySelectorAll('.unlock-button').forEach(button => {
-                    button.addEventListener('click', () => {
-                        document.getElementById('apiKeyModal').style.display = 'block';
+                // If we're using cached data, don't prompt for API key
+                if (artistIsCached || hasCachedRecommendations) {
+                    console.log('Using cached data - no API key needed for', artistData.name);
+                    // Hide any API key related elements
+                    document.querySelectorAll('.unlock-button').forEach(button => {
+                        button.classList.add('hidden');
                     });
-                });
+                }
+            } else {
+                // No cache and no API key - show the API key prompt
+                console.log('No cached data and no API key available for', artistData.name);
                 
-                // Lock the content sections since this is a non-cached artist with no API key
                 const recommendationsSection = document.getElementById('artistRecommendations');
-                const influencesSection = document.getElementById('artistInfluences');
                 const recommendationsContent = document.getElementById('recommendationsContent');
-                const influencesVisualization = document.getElementById('influencesVisualization');
                 const lockedContentRecs = document.getElementById('recommendationsLockedContent');
-                const lockedContentInf = document.getElementById('influencesLockedContent');
                 
                 if (recommendationsSection && recommendationsContent && lockedContentRecs) {
                     recommendationsContent.classList.add('hidden');
                     lockedContentRecs.classList.remove('hidden');
                     recommendationsSection.classList.add('locked');
                 }
-                
-                if (influencesSection && influencesVisualization && lockedContentInf) {
-                    influencesVisualization.classList.add('hidden');
-                    lockedContentInf.classList.remove('hidden');
-                    influencesSection.classList.add('locked');
-                }
+            }
+            
+            // Setup API key modal triggers if needed - only if we don't have cached data
+            if (!apiKey && !(artistIsCached || hasCachedRecommendations)) {
+                // Set up unlock buttons event listeners
+                document.querySelectorAll('.unlock-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        document.getElementById('apiKeyModal').style.display = 'block';
+                    });
+                });
             }
         } catch (error) {
             console.error('Error loading enhanced content:', error);
@@ -186,32 +179,6 @@ async function isArtistCached(artistId) {
 function displayArtistHeader(artistData) {
     document.getElementById('artistName').textContent = artistData.name;
     document.getElementById('artistName').classList.remove('skeleton-text');
-    
-    const artistImage = document.getElementById('artistImage');
-    if (artistData.images && artistData.images.length > 0) {
-        const img = document.createElement('img');
-        img.src = artistData.images[0].url;
-        img.alt = artistData.name;
-        artistImage.appendChild(img);
-    }
-    
-    const genresElement = document.getElementById('artistGenres');
-    genresElement.innerHTML = '';
-    genresElement.classList.remove('skeleton-text');
-    
-    if (artistData.genres && artistData.genres.length > 0) {
-        artistData.genres.forEach(genre => {
-            const genreTag = document.createElement('span');
-            genreTag.className = 'genre-tag';
-            genreTag.textContent = genre;
-            genresElement.appendChild(genreTag);
-        });
-    } else {
-        const genreTag = document.createElement('span');
-        genreTag.className = 'genre-tag';
-        genreTag.textContent = 'No genres available';
-        genresElement.appendChild(genreTag);
-    }
     
     // Remove loading state
     document.getElementById('artistHeader').classList.remove('loading');

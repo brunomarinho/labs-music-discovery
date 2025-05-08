@@ -1,15 +1,17 @@
 // Prefetch Service
 // Handle the prefetching of artist data, recommendations, and influences
 
-import { loadArtistData } from './spotify-service.js';
+import { loadArtistData, searchArtistByName } from './spotify-service.js';
 import { getLLMResponse } from './llm-service.js';
 import { 
     bulkCacheArtistData, 
     bulkCacheArtistRecommendations, 
     bulkCacheArtistInfluences,
     getPrefetchStatus,
-    setPrefetchStatus
+    setPrefetchStatus,
+    cacheArtistData
 } from './cache-service.js';
+import { setArtistId } from '../data/featured-artists.js';
 
 /**
  * Check if data prefetching has already been completed
@@ -87,6 +89,40 @@ export async function prefetchArtistData(artistNamesOrIds) {
  * @param {string} apiKey - OpenAI API key
  * @returns {Promise<boolean>} Promise resolving to success status
  */
+/**
+ * Fetch artist data from server cache by name
+ * @param {string} artistName - Artist name to look up
+ * @returns {Promise<Object|null>} Artist data or null if not found
+ */
+export async function fetchServerCachedArtist(artistName) {
+    if (!artistName) return null;
+    
+    try {
+        // The server endpoint may not exist, so we'll fail gracefully
+        try {
+            // Try fetching from the server if the endpoint exists
+            const response = await fetch(`/api/cached-artist-by-name/${encodeURIComponent(artistName)}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    return data.data;
+                }
+            }
+        } catch (serverError) {
+            // Silently fail if server endpoint doesn't exist
+            console.log(`Server cache doesn't have endpoint for artist name lookup: ${artistName}`);
+        }
+        
+        // If we get here, the server endpoint doesn't exist or didn't return valid data
+        return null;
+    } catch (error) {
+        console.warn(`Error fetching artist data for ${artistName} from server:`, error);
+        return null;
+    }
+}
+
 export async function prefetchLLMData(artistsData, apiKey) {
     if (!apiKey) {
         console.warn('No API key provided for LLM prefetching');

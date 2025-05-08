@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Artist Details - Artist Explorer</title>
+    <title>Artist Recommendations - Rec'd</title>
+    <!-- Typekit font integration -->
+    <link rel="stylesheet" href="https://use.typekit.net/jtt4bay.css">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/results.css">
     <link rel="stylesheet" href="css/components.css">
@@ -12,10 +14,10 @@
 </head>
 <body>
     <header>
-        <div class="logo"><a href="index.html">Artist Explorer</a></div>
+        <div class="logo"><a href="index.html">Rec'd</a></div>
         
         <div class="mini-search-container">
-            <input type="text" id="miniArtistSearch" class="mini-search-input" placeholder="Search for another artist..." autocomplete="off">
+            <input type="text" id="miniArtistSearch" class="mini-search-input" placeholder="Search (i.e. Foo Fighters)" autocomplete="off">
             <div id="miniSearchResults" class="search-results mini"></div>
         </div>
     </header>
@@ -26,40 +28,23 @@
         </div>
         
         <section id="artistHeader" class="artist-header loading">
-            <div class="artist-image-container">
-                <div class="artist-image" id="artistImage"></div>
-            </div>
             <div class="artist-info">
                 <h1 id="artistName" class="skeleton-text">Artist Name</h1>
-                <div id="artistGenres" class="artist-genres skeleton-text">Genres</div>
             </div>
         </section>
         
-        <section id="artistRecommendations" class="artist-recommendations section-card locked">
-            <h2>
-                Recent Recommendations
-                <button id="refreshRecommendations" class="refresh-button hidden" title="Get fresh data">↻</button>
-            </h2>
+        <section id="artistRecommendations" class="artist-recommendations section-card">
+            <h2>Recommends</h2>
+            <p class="subtitle">Found in the past 12 months from interviews, social media and videos.</p>
+            
+            <button id="refreshRecommendations" class="refresh-button hidden">Refresh Recommendations</button>
+            
             <div class="locked-content" id="recommendationsLockedContent">
                 <p>Unlock artist recommendations by adding your OpenAI API key.</p>
                 <button id="unlockRecommendations" class="unlock-button">Add API Key</button>
             </div>
-            <div id="recommendationsContent" class="recommendations-content hidden">
+            <div id="recommendationsContent" class="recommendations-content">
                 <!-- Recommendations will be populated here -->
-            </div>
-        </section>
-        
-        <section id="artistInfluences" class="artist-influences section-card locked">
-            <h2>
-                Influence Tree
-                <button id="refreshInfluences" class="refresh-button hidden" title="Get fresh data">↻</button>
-            </h2>
-            <div class="locked-content" id="influencesLockedContent">
-                <p>Unlock artist influence visualization by adding your OpenAI API key.</p>
-                <button id="unlockInfluences" class="unlock-button">Add API Key</button>
-            </div>
-            <div id="influencesVisualization" class="influences-visualization hidden">
-                <!-- Influence tree visualization will be rendered here -->
             </div>
         </section>
     </main>

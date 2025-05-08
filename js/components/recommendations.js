@@ -48,35 +48,71 @@ export async function loadArtistRecommendations(artistData, apiKey, forceRefresh
         return;
     }
     
+    // Get DOM elements with fallback error handling
     const recommendationsSection = document.getElementById('artistRecommendations');
-    const recommendationsContent = document.getElementById('recommendationsContent');
-    const lockedContent = document.getElementById('recommendationsLockedContent');
-    const refreshButton = document.getElementById('refreshRecommendations');
-    
-    if (!recommendationsSection || !recommendationsContent || !lockedContent || !refreshButton) {
-        console.error('Recommendations section elements not found');
+    if (!recommendationsSection) {
+        console.error('Artist recommendations section not found');
         return;
     }
     
-    // Simplified approach - always show content when API key is provided or this is a cached artist
-    // In results.js, we're only calling this function for cached artists or when API key is available
+    const recommendationsContent = document.getElementById('recommendationsContent');
+    if (!recommendationsContent) {
+        console.error('Recommendations content element not found');
+        return;
+    }
     
-    // Show content and hide locked message
+    const lockedContent = document.getElementById('recommendationsLockedContent');
+    if (!lockedContent) {
+        console.error('Locked content element not found');
+        return;
+    }
+    
+    // Get refresh button - it should already exist in the HTML now
+    const refreshButton = document.getElementById('refreshRecommendations');
+    if (!refreshButton) {
+        console.warn('Refresh button not found in the DOM');
+        // Continue anyway since this isn't critical
+    }
+    
+    // First check if we have cached data - before even checking API key
+    // This ensures we display cached data without API key prompts
+    const cachedRecommendations = getCachedArtistRecommendations(artistData.id);
+    const hasCachedRecommendations = cachedRecommendations && cachedRecommendations.length > 0;
+    
+    // Check server cache if no local cache
+    let serverCachedRecommendations = null;
+    if (!hasCachedRecommendations && !forceRefresh) {
+        try {
+            serverCachedRecommendations = await fetchServerCachedRecommendations(artistData.id);
+        } catch (err) {
+            console.warn('Error checking server cache:', err);
+        }
+    }
+    
+    const hasServerCachedData = serverCachedRecommendations && 
+                             ((Array.isArray(serverCachedRecommendations) && serverCachedRecommendations.length > 0) ||
+                              (serverCachedRecommendations.data && Array.isArray(serverCachedRecommendations.data) && 
+                               serverCachedRecommendations.data.length > 0));
+    
+    // Make sure we unhide the content section and hide the locked content
     recommendationsContent.classList.remove('hidden');
     lockedContent.classList.add('hidden');
     recommendationsSection.classList.remove('locked');
     
     // Only show refresh button if we have an API key
-    if (apiKey) {
-        refreshButton.classList.remove('hidden');
-    } else {
-        refreshButton.classList.add('hidden');
+    // (even if we're using cached data, only show refresh if we can generate new data)
+    if (refreshButton) {
+        if (apiKey) {
+            refreshButton.classList.remove('hidden');
+        } else {
+            refreshButton.classList.add('hidden');
+        }
+        
+        // Set up refresh button click handler
+        refreshButton.onclick = () => {
+            loadArtistRecommendations(artistData, apiKey, true);
+        };
     }
-    
-    // Set up refresh button click handler
-    refreshButton.onclick = () => {
-        loadArtistRecommendations(artistData, apiKey, true);
-    };
     
     try {
         // Add loading state
@@ -88,43 +124,36 @@ export async function loadArtistRecommendations(artistData, apiKey, forceRefresh
         
         // Check local cache first (unless forcing refresh)
         if (!forceRefresh) {
-            // Check local cache
-            const cachedRecommendations = getCachedArtistRecommendations(artistData.id);
-            if (cachedRecommendations) {
+            // We already checked for cachedRecommendations above, so reuse that result
+            if (hasCachedRecommendations) {
                 console.log('Using locally cached recommendations for', artistData.name);
                 await displayRecommendations(cachedRecommendations, recommendationsContent);
                 return;
             }
             
-            // If no local cache, try to get from server
-            try {
-                const serverRecommendations = await fetchServerCachedRecommendations(artistData.id);
-                if (serverRecommendations) {
-                    console.log('Using server-cached recommendations for', artistData.name);
-                    
-                    // Validate format and extract the data array if needed
-                    let validRecommendations = serverRecommendations;
-                    
-                    // Handle different possible formats from server
-                    if (!Array.isArray(serverRecommendations) && serverRecommendations.data && Array.isArray(serverRecommendations.data)) {
-                        validRecommendations = serverRecommendations.data;
-                        console.log('Extracted recommendations from nested data property');
-                    }
-                    
-                    if (Array.isArray(validRecommendations) && validRecommendations.length > 0) {
-                        // Cache the data locally
-                        cacheArtistRecommendations(artistData.id, validRecommendations);
-                        await displayRecommendations(validRecommendations, recommendationsContent);
-                        return;
-                    }
-                    
-                    console.log('Server returned recommendations but in an unusable format:', typeof serverRecommendations);
-                } else {
-                    console.log('No server-cached recommendations found for', artistData.name);
+            // If no local cache, try to get from server (we already checked above)
+            if (hasServerCachedData) {
+                console.log('Using server-cached recommendations for', artistData.name);
+                
+                // Validate format and extract the data array if needed
+                let validRecommendations = serverCachedRecommendations;
+                
+                // Handle different possible formats from server
+                if (!Array.isArray(serverCachedRecommendations) && serverCachedRecommendations.data && Array.isArray(serverCachedRecommendations.data)) {
+                    validRecommendations = serverCachedRecommendations.data;
+                    console.log('Extracted recommendations from nested data property');
                 }
-            } catch (serverError) {
-                console.warn('Error fetching server-cached recommendations:', serverError);
-                // Continue to LLM generation if we have an API key
+                
+                if (Array.isArray(validRecommendations) && validRecommendations.length > 0) {
+                    // Cache the data locally
+                    cacheArtistRecommendations(artistData.id, validRecommendations);
+                    await displayRecommendations(validRecommendations, recommendationsContent);
+                    return;
+                }
+                
+                console.log('Server returned recommendations but in an unusable format:', typeof serverCachedRecommendations);
+            } else {
+                console.log('No server-cached recommendations found for', artistData.name);
             }
         } else if (apiKey) {
             // Only clear cache if forcing refresh AND we have an API key
@@ -141,21 +170,27 @@ export async function loadArtistRecommendations(artistData, apiKey, forceRefresh
             return;
         }
         
-        // Construct prompt for the LLM
-        const prompt = generateRecommendationsPrompt(artistData);
-        
-        // Get recommendations from LLM
-        console.log('Fetching fresh recommendations for', artistData.name);
-        const recommendationsText = await getLLMResponse(prompt, apiKey);
-        
-        // Parse the recommendations
-        const recommendations = parseRecommendations(recommendationsText);
-        
-        // Cache the result
-        cacheArtistRecommendations(artistData.id, recommendations);
-        
-        // Display the recommendations
-        await displayRecommendations(recommendations, recommendationsContent);
+        // If we get here, we need to use the API key to get recommendations
+        try {
+            // Construct prompt for the LLM
+            const prompt = generateRecommendationsPrompt(artistData);
+            
+            // Get recommendations from LLM
+            console.log('Fetching fresh recommendations for', artistData.name);
+            const recommendationsText = await getLLMResponse(prompt, apiKey);
+            
+            // Parse the recommendations
+            const recommendations = parseRecommendations(recommendationsText);
+            
+            // Cache the result
+            cacheArtistRecommendations(artistData.id, recommendations);
+            
+            // Display the recommendations
+            await displayRecommendations(recommendations, recommendationsContent);
+        } catch (error) {
+            console.error('Error getting recommendations with API key:', error);
+            displayRecommendationsError(recommendationsContent, apiKey);
+        }
     } catch (error) {
         console.error('Error loading artist recommendations:', error);
         displayRecommendationsError(recommendationsContent, apiKey);

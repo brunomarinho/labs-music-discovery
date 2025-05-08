@@ -134,6 +134,38 @@ app.get('/api/cached-artist/:id', (req, res) => {
   }
 });
 
+// Pre-cached artist data by name API endpoint
+app.get('/api/cached-artist-by-name/:name', (req, res) => {
+  try {
+    const artistName = req.params.name;
+    if (!artistName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Artist name is required'
+      });
+    }
+    
+    const artistData = cache.getArtistByName(artistName);
+    if (!artistData) {
+      return res.status(404).json({
+        success: false,
+        error: 'Artist not found in cache'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: artistData
+    });
+  } catch (error) {
+    console.error('Error fetching cached artist data by name:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch artist data from cache'
+    });
+  }
+});
+
 // Pre-cached recommendations API endpoint
 app.get('/api/cached-recommendations/:id', (req, res) => {
   try {
