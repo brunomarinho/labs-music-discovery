@@ -3,8 +3,8 @@ import { initSearchBar } from './components/search-bar.js';
 import { loadArtistData } from './services/spotify-service.js';
 import { initApiKeyModal } from './components/api-key-modal.js';
 import { loadArtistRecommendations } from './components/recommendations.js';
-import { 
-    loadCachedApiKey, 
+import {
+    loadCachedApiKey,
     getCachedArtistRecommendations
 } from './services/cache-service.js';
 
@@ -27,8 +27,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize API key modal
     initApiKeyModal();
     
+    // Hide the recommendations locked content initially to prevent flickering
+    const recommendationsLockedContent = document.getElementById('recommendationsLockedContent');
+    if (recommendationsLockedContent) {
+        recommendationsLockedContent.classList.add('hidden');
+    }
+    
+    // No need to set the artist name here anymore - it's pre-filled by the server
+    // If for some reason the artist name isn't set yet, we'll handle it when we get the artist data
+    
     // Load artist data
     try {
+        // First check if this artist is in our predefined list of featured artists before showing any UI
+        const artistIsCached = await isArtistCached(artistId);
+        console.log('Artist cached status check:', artistId, artistIsCached);
+        
+        // Check for locally cached recommendations before showing any UI
+        const cachedRecommendations = getCachedArtistRecommendations(artistId);
+        const hasCachedRecommendations = cachedRecommendations && cachedRecommendations.length > 0;
+        
+        // Load the API key only if needed (when we don't have cached data)
+        const apiKey = !(artistIsCached || hasCachedRecommendations) ? loadCachedApiKey() : null;
+        
+        // Load artist data
         const artistData = await loadArtistData(artistId);
         
         // Update the URL with the artist slug if not already present
@@ -37,59 +58,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateUrlWithArtistSlug(artistId, artistSlug);
         }
         
-        // Update document title with artist name
+        // Update document title with artist name from API data
         document.title = `${artistData.name} - Rec'd`;
         
-        displayArtistHeader(artistData);
-        
-        // Check if we have cached data or an API key for enhanced features
-        const apiKey = loadCachedApiKey();
-        
-        // Check for cached recommendations
-        const cachedRecommendations = getCachedArtistRecommendations(artistData.id);
-        
-        // Check if this artist is in our predefined list of featured artists or has cached recommendations
-        try {
-            const artistIsCached = await isArtistCached(artistId);
-            console.log('Artist cached status check:', artistId, artistIsCached);
-            
-            // First check for cached recommendations
-            const cachedRecommendations = getCachedArtistRecommendations(artistId);
-            const hasCachedRecommendations = cachedRecommendations && cachedRecommendations.length > 0;
-            
-            // Load recommendations in these cases:
-            // 1. Artist is cached (from featured artists)
-            // 2. We have cached recommendations
-            // 3. We have an API key to generate new recommendations
-            if (artistIsCached || hasCachedRecommendations || apiKey) {
-                console.log('Loading recommendations for', artistData.name);
-                loadArtistRecommendations(artistData, apiKey);
-                
-                // If we're using cached data, don't prompt for API key
-                if (artistIsCached || hasCachedRecommendations) {
-                    console.log('Using cached data - no API key needed for', artistData.name);
-                    // Hide any API key related elements
-                    document.querySelectorAll('.unlock-button').forEach(button => {
-                        button.classList.add('hidden');
-                    });
-                }
-            } else {
-                // No cache and no API key - show the API key prompt
-                console.log('No cached data and no API key available for', artistData.name);
-                
-                const recommendationsSection = document.getElementById('artistRecommendations');
-                const recommendationsContent = document.getElementById('recommendationsContent');
-                const lockedContentRecs = document.getElementById('recommendationsLockedContent');
-                
-                if (recommendationsSection && recommendationsContent && lockedContentRecs) {
-                    recommendationsContent.classList.add('hidden');
-                    lockedContentRecs.classList.remove('hidden');
-                    recommendationsSection.classList.add('locked');
-                }
+        // Only update the header if we didn't already set it from the URL slug
+        if (!artistSlug) {
+            displayArtistHeader(artistData);
+        } else {
+            // If there's a mismatch between the slug name and API name, update it
+            const artistNameElement = document.getElementById('artistName');
+            if (artistNameElement && artistNameElement.textContent !== artistData.name) {
+                artistNameElement.textContent = artistData.name;
             }
+        }
+        
+        // Load recommendations in these cases:
+        // 1. Artist is cached (from featured artists)
+        // 2. We have cached recommendations
+        // 3. We have an API key to generate new recommendations
+        if (artistIsCached || hasCachedRecommendations || apiKey) {
+            console.log('Loading recommendations for', artistData.name);
+            loadArtistRecommendations(artistData, apiKey);
+        } else {
+            // No cache and no API key - show the API key prompt
+            console.log('No cached data and no API key available for', artistData.name);
             
-            // Setup API key modal triggers if needed - only if we don't have cached data
-            if (!apiKey && !(artistIsCached || hasCachedRecommendations)) {
+            const recommendationsSection = document.getElementById('artistRecommendations');
+            const recommendationsContent = document.getElementById('recommendationsContent');
+            const lockedContentRecs = document.getElementById('recommendationsLockedContent');
+            
+            if (recommendationsSection && recommendationsContent && lockedContentRecs) {
+                recommendationsContent.classList.add('hidden');
+                lockedContentRecs.classList.remove('hidden');
+                recommendationsSection.classList.add('locked');
+                
                 // Set up unlock buttons event listeners
                 document.querySelectorAll('.unlock-button').forEach(button => {
                     button.addEventListener('click', () => {
@@ -97,8 +99,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                 });
             }
-        } catch (error) {
-            console.error('Error loading enhanced content:', error);
         }
     } catch (error) {
         console.error('Error loading artist data:', error);
@@ -136,10 +136,9 @@ async function isArtistCached(artistId) {
     try {
         // First try a direct server-cache API call to see if the artist has cached server data
         const recommendationsResponse = await fetch(`/api/cached-recommendations/${artistId}`);
-        const influencesResponse = await fetch(`/api/cached-influences/${artistId}`);
         
-        if (recommendationsResponse.ok || influencesResponse.ok) {
-            console.log('Artist has server-cached data available');
+        if (recommendationsResponse.ok) {
+            console.log('Artist has server-cached recommendations data available');
             return true;
         }
     } catch (error) {
@@ -149,9 +148,8 @@ async function isArtistCached(artistId) {
     // As a fallback, check for local cache
     try {
         const recommendationsData = getCachedArtistRecommendations(artistId);
-        const influencesData = getCachedArtistInfluences(artistId);
         
-        if (recommendationsData || influencesData) {
+        if (recommendationsData) {
             console.log('Artist has locally cached data');
             return true;
         }
@@ -177,11 +175,13 @@ async function isArtistCached(artistId) {
 }
 
 function displayArtistHeader(artistData) {
-    document.getElementById('artistName').textContent = artistData.name;
-    document.getElementById('artistName').classList.remove('skeleton-text');
-    
-    // Remove loading state
-    document.getElementById('artistHeader').classList.remove('loading');
+    // This function now only runs when we don't have a slug in the URL
+    // When we have a slug, we already set the name earlier
+
+    const artistNameElement = document.getElementById('artistName');
+    if (artistNameElement) {
+        artistNameElement.textContent = artistData.name;
+    }
 }
 
 function displayError() {

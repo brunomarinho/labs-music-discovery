@@ -67,6 +67,9 @@ export async function loadArtistRecommendations(artistData, apiKey, forceRefresh
         return;
     }
     
+    // Keep the locked content hidden until we determine we really need it
+    lockedContent.classList.add('hidden');
+    
     // Get refresh button - it should already exist in the HTML now
     const refreshButton = document.getElementById('refreshRecommendations');
     if (!refreshButton) {
@@ -96,7 +99,6 @@ export async function loadArtistRecommendations(artistData, apiKey, forceRefresh
     
     // Make sure we unhide the content section and hide the locked content
     recommendationsContent.classList.remove('hidden');
-    lockedContent.classList.add('hidden');
     recommendationsSection.classList.remove('locked');
     
     // Only show refresh button if we have an API key

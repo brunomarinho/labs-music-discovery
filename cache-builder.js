@@ -145,20 +145,7 @@ Please return a JSON array where each item has these properties:
 Focus ONLY on the MOST RECENT recommendations from the past 12 months. Include a maximum of 10 recommendations and prioritize the most recent ones.`;
 }
 
-/**
- * Generate influences prompt for LLM
- */
-function generateInfluencesPrompt(artistName) {
-    return `Who are the key musical influences of ${artistName}?
-
-Please return a JSON array where each item has these properties:
-- name: The name of the influential artist
-- genre: The primary genre/style of this influential artist
-- impact: A short description of how they influenced ${artistName}
-- connection: The specific connection, such as "vocal technique", "songwriting", "guitar style", etc.
-
-Include up to 8 influences, prioritizing those explicitly mentioned by ${artistName} themselves.`;
-}
+// Influences functionality has been removed
 
 /**
  * Get recommendations or influences using OpenAI API
@@ -266,18 +253,6 @@ async function buildCache() {
                 if (recommendations && recommendations.length > 0) {
                     console.log(`Got ${recommendations.length} recommendations for ${artistName}`);
                     cache.saveArtistRecommendations(artistData.id, recommendations);
-                }
-                
-                // Short delay to avoid rate limits
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Get influences
-                const influencesPrompt = generateInfluencesPrompt(artistName);
-                const influences = await getLLMResponse(influencesPrompt);
-                
-                if (influences && influences.length > 0) {
-                    console.log(`Got ${influences.length} influences for ${artistName}`);
-                    cache.saveArtistInfluences(artistData.id, influences);
                 }
                 
                 // Longer delay between artists to avoid rate limits

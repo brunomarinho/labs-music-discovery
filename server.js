@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
 const cache = require('./server-cache'); // Import the server cache module
 
 const app = express();
@@ -20,7 +21,6 @@ app.use(express.static(path.join(__dirname, '/')));
 // API credentials from environment variables
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-const LASTFM_API_KEY = process.env.LASTFM_API_KEY || 'REPLACE_WITH_LASTFM_API_KEY';
 let spotifyToken = null;
 let tokenExpiration = 0;
 
@@ -198,36 +198,12 @@ app.get('/api/cached-recommendations/:id', (req, res) => {
   }
 });
 
-// Pre-cached influences API endpoint
+// Legacy endpoint that's no longer used
 app.get('/api/cached-influences/:id', (req, res) => {
-  try {
-    const artistId = req.params.id;
-    if (!artistId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Artist ID is required'
-      });
-    }
-    
-    const influences = cache.getArtistInfluences(artistId);
-    if (!influences) {
-      return res.status(404).json({
-        success: false,
-        error: 'Influences not found in cache'
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: influences
-    });
-  } catch (error) {
-    console.error('Error fetching cached influences:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch influences from cache'
-    });
-  }
+  res.status(410).json({
+    success: false,
+    error: 'The influences API is no longer supported'
+  });
 });
 
 // Cache management endpoint (admin only)
@@ -265,55 +241,73 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Last.fm API proxy endpoint
-app.get('/api/lastfm/*', async (req, res) => {
-  try {
-    const endpoint = req.params[0];
-    const queryParams = req.query;
-    
-    // Add API key to the request
-    queryParams.api_key = LASTFM_API_KEY;
-    queryParams.format = 'json';
-    
-    // Build the URL
-    const url = new URL(`https://ws.audioscrobbler.com/2.0/`);
-    Object.keys(queryParams).forEach(key => {
-      url.searchParams.append(key, queryParams[key]);
+// Serve the results page with pre-filled artist name
+app.get('/results.html', (req, res) => {
+  const artistSlug = req.query.artist;
+  const artistId = req.query.id;
+  
+  // If we have the artist slug, use it to pre-fill the artist name
+  if (artistSlug && artistId) {
+    // Read the results.html file
+    fs.readFile(path.join(__dirname, 'results.html'), 'utf8', (err, data) => {
+      if (err) {
+        console.error('Error reading results.html:', err);
+        return res.sendFile(path.join(__dirname, 'results.html'));
+      }
+      
+      // Convert the slug to a readable name
+      const artistName = artistSlug
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      // Replace the artist name placeholder with the actual name
+      const updatedHtml = data.replace('<!-- ARTIST_NAME_PLACEHOLDER -->', artistName);
+      
+      // Update the page title
+      const titleRegex = /<title>.*?<\/title>/;
+      const updatedHtmlWithTitle = updatedHtml.replace(
+        titleRegex, 
+        `<title>${artistName} - Rec'd</title>`
+      );
+      
+      // Send the modified HTML
+      res.send(updatedHtmlWithTitle);
     });
-    
-    // Make request to Last.fm API
-    const response = await axios({
-      method: 'get',
-      url: url.toString()
-    });
-    
-    res.json(response.data);
-  } catch (error) {
-    console.error('Last.fm API error:', error.message);
-    res.status(error.response?.status || 500).json({
-      error: error.message,
-      details: error.response?.data || 'Unknown error'
-    });
+  } else {
+    // If no artistSlug/id, just serve the regular page
+    res.sendFile(path.join(__dirname, 'results.html'));
   }
+});
+
+// Legacy endpoint - no longer used
+app.get('/api/lastfm/*', async (req, res) => {
+  res.status(410).json({
+    error: 'The LastFM API endpoint is no longer supported'
+  });
 });
 
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Spotify API credentials loaded: ID=${SPOTIFY_CLIENT_ID ? 'YES' : 'NO'}, Secret=${SPOTIFY_CLIENT_SECRET ? 'YES' : 'NO'}`);
-  console.log(`Last.fm API key loaded: ${LASTFM_API_KEY ? 'YES' : 'NO'}`);
   
   // Log cache status
+  const artistData = cache.getAllCachedArtists();
+  const artistCount = Object.keys(artistData).length;
   const featuredArtists = cache.getHomepageFeaturedArtists();
-  console.log(`Server cache initialized with ${featuredArtists.length} featured artists`);
-  console.log(`To populate cache, run: node cache-builder.js`);
+  const recommendationsCount = Object.keys(cache.getAllRecommendations()).length;
+  
+  console.log(`Server cache initialized with ${artistCount} total artists`);
+  console.log(`Featured artists on homepage: ${featuredArtists.length}`);
+  console.log(`Artists with recommendations: ${recommendationsCount}`);
   
   // If the cache is empty and we have Spotify credentials, suggest running the cache builder
-  if (featuredArtists.length === 0 && SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET) {
+  if (artistCount === 0 && SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET) {
     console.log('\n⚠️  Featured artists cache is empty!');
     console.log('Run the following command to build the cache:');
     console.log('  node cache-builder.js');
-    console.log('\nTo include LLM-generated data (needs OpenAI API key):');
+    console.log('\nTo include recommendations (needs OpenAI API key):');
     console.log('  node cache-builder.js --with-llm-data <YOUR_OPENAI_API_KEY>\n');
   }
 });

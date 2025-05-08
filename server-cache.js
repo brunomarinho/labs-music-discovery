@@ -15,12 +15,10 @@ const axios = require('axios');
 const CACHE_DIR = path.join(__dirname, 'server-cache');
 const ARTIST_DATA_FILE = path.join(CACHE_DIR, 'artist-data.json');
 const RECOMMENDATIONS_FILE = path.join(CACHE_DIR, 'recommendations.json');
-const INFLUENCES_FILE = path.join(CACHE_DIR, 'influences.json');
 
 // In-memory cache
 let artistDataCache = {};
 let recommendationsCache = {};
-let influencesCache = {};
 
 // Load shared artists data
 const { FEATURED_ARTISTS, getHomepageFeatured, getFeaturedArtistNames } = require('./js/data/featured-artists');
@@ -51,11 +49,6 @@ function initCache() {
             recommendationsCache = JSON.parse(fs.readFileSync(RECOMMENDATIONS_FILE, 'utf8'));
             console.log(`Loaded ${Object.keys(recommendationsCache).length} artist recommendations from cache file`);
         }
-        
-        if (fs.existsSync(INFLUENCES_FILE)) {
-            influencesCache = JSON.parse(fs.readFileSync(INFLUENCES_FILE, 'utf8'));
-            console.log(`Loaded ${Object.keys(influencesCache).length} artist influences from cache file`);
-        }
     } catch (error) {
         console.error('Error loading cache files:', error);
     }
@@ -66,7 +59,6 @@ function saveCache() {
     try {
         fs.writeFileSync(ARTIST_DATA_FILE, JSON.stringify(artistDataCache, null, 2));
         fs.writeFileSync(RECOMMENDATIONS_FILE, JSON.stringify(recommendationsCache, null, 2));
-        fs.writeFileSync(INFLUENCES_FILE, JSON.stringify(influencesCache, null, 2));
         console.log('Cache saved to disk');
     } catch (error) {
         console.error('Error saving cache to disk:', error);
@@ -114,15 +106,6 @@ function getArtistRecommendations(artistId) {
 }
 
 /**
- * Get influences for an artist
- * @param {string} artistId - Spotify artist ID
- * @returns {Array|null} Influences or null if not in cache
- */
-function getArtistInfluences(artistId) {
-    return artistId && influencesCache[artistId] ? influencesCache[artistId] : null;
-}
-
-/**
  * Save artist data to cache
  * @param {string} artistId - Spotify artist ID
  * @param {Object} data - Artist data
@@ -146,17 +129,6 @@ function saveArtistRecommendations(artistId, recommendations) {
     }
 }
 
-/**
- * Save influences for an artist
- * @param {string} artistId - Spotify artist ID
- * @param {Array} influences - Influences data
- */
-function saveArtistInfluences(artistId, influences) {
-    if (artistId && influences) {
-        influencesCache[artistId] = influences;
-        saveCache();
-    }
-}
 
 /**
  * Get all cached artists
@@ -164,6 +136,14 @@ function saveArtistInfluences(artistId, influences) {
  */
 function getAllCachedArtists() {
     return { ...artistDataCache };
+}
+
+/**
+ * Get all artist recommendations
+ * @returns {Object} Map of artist IDs to recommendation data
+ */
+function getAllRecommendations() {
+    return { ...recommendationsCache };
 }
 
 /**
@@ -190,7 +170,6 @@ function getHomepageFeaturedArtists() {
 function clearCache() {
     artistDataCache = {};
     recommendationsCache = {};
-    influencesCache = {};
     saveCache();
 }
 
@@ -203,11 +182,10 @@ module.exports = {
     getArtistData,
     getArtistByName,
     getArtistRecommendations,
-    getArtistInfluences,
     saveArtistData,
     saveArtistRecommendations,
-    saveArtistInfluences,
     getAllCachedArtists,
+    getAllRecommendations,
     getHomepageFeaturedArtists,
     clearCache,
     HOMEPAGE_FEATURED
