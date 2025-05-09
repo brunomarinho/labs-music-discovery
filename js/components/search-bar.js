@@ -7,11 +7,10 @@ let currentSearchTerm = '';
 let searchResults = [];
 let isSearching = false;
 
-export function initSearchBar(type = 'full') {
-    const isMinSearch = type === 'mini';
-    const searchInput = isMinSearch ? document.getElementById('miniArtistSearch') : document.getElementById('artistSearch');
-    const searchResultsContainer = isMinSearch ? document.getElementById('miniSearchResults') : document.getElementById('searchResults');
-    const searchButton = isMinSearch ? null : document.getElementById('searchButton');
+export function initSearchBar() {
+    const searchInput = document.getElementById('artistSearch');
+    const searchResultsContainer = document.getElementById('searchResults');
+    const searchButton = document.getElementById('searchButton');
     
     if (!searchInput || !searchResultsContainer) {
         console.error('Search elements not found');
@@ -74,16 +73,14 @@ export function initSearchBar(type = 'full') {
     
     // Handle clicks outside the search container to close results
     document.addEventListener('click', (e) => {
-        const searchContainer = isMinSearch ? 
-            document.querySelector('.mini-search-container') : 
-            document.getElementById('searchBarContainer');
-            
+        const searchContainer = document.getElementById('searchBarContainer');
+
         if (!searchContainer.contains(e.target)) {
             searchResultsContainer.classList.remove('active');
         }
     });
     
-    // Handle search button click (for the main search only)
+    // Handle search button click
     if (searchButton) {
         searchButton.addEventListener('click', () => {
             if (currentSearchTerm.length > 0 && searchResults.length > 0) {
@@ -130,7 +127,7 @@ function displaySearchResults(results, container) {
             <img src="${imageUrl}" alt="${artist.name}" />
             <div class="result-info">
                 <div class="result-name">${artist.name}</div>
-                <div class="result-meta">${genres}</div>
+                
             </div>
         `;
         

@@ -21,8 +21,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
-    // Initialize mini search bar
-    initSearchBar('mini');
+    // Initialize search bar
+    initSearchBar();
     
     // Initialize API key modal
     initApiKeyModal();
