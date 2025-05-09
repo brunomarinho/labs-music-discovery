@@ -32,7 +32,7 @@
 
 .artist-info h1 {
     margin-bottom: var(--space-xs);
-    font-size: 3rem;
+    font-size: var(--font-size-l);
     font-weight: var(--font-weight-bold);
 }
 

@@ -984,14 +984,6 @@ async function displayRecommendations(recommendations, container) {
     const headerEl = document.createElement('div');
     headerEl.className = 'recommendations-header';
     
-    if (hasRecentRecommendations) {
-        headerEl.innerHTML = `<p>Recent recommendations from the past 12 months</p>`;
-    } else {
-        headerEl.innerHTML = `
-            <p>Recommendations from this artist</p>
-            <span class="recommendations-note">No recommendations found from the past 12 months, showing older recommendations</span>
-        `;
-    }
     
     container.appendChild(headerEl);
     
