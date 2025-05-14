@@ -1,9 +1,16 @@
-import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
 import { useRouter } from 'next/router';
+import SEO from './SEO';
 
-export default function Layout({ children, title = "Rec'd - Music Discovery" }) {
+export default function Layout({ 
+  children, 
+  title = "Rec'd - Music Discovery",
+  description = "Discover new music artists based on your favorites",
+  canonical,
+  ogImage,
+  ogType
+}) {
   const { user, profile, logout, isAuthenticated, searchCount } = useAuth();
   const router = useRouter();
 
@@ -15,14 +22,18 @@ export default function Layout({ children, title = "Rec'd - Music Discovery" }) 
     }
   };
 
+  // Prepare only props that were passed to Layout
+  const seoProps = {
+    title,
+    ...(description && { description }),
+    ...(canonical && { canonical }),
+    ...(ogImage && { ogImage }),
+    ...(ogType && { ogType })
+  };
+  
   return (
     <>
-      <Head>
-        <title>{title}</title>
-        <meta name="description" content="Discover new music artists based on your favorites" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <SEO {...seoProps} />
 
       <div className="layout">
         <header className="header">

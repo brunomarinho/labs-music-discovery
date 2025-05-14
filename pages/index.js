@@ -1,45 +1,16 @@
-import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import { useState } from 'react';
+import Link from 'next/link';
 import Layout from '../components/Layout';
 import SearchBar from '../components/SearchBar';
-import ArtistCard from '../components/ArtistCard';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { getFeaturedArtists } from '../lib/supabase';
+import featuredArtists from '../data/featured-artists.json';
+import { slugify } from '../lib/utils';
 
 export default function Home() {
-  const [featuredArtists, setFeaturedArtists] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Fetch featured artists on component mount
-  useEffect(() => {
-    const fetchFeaturedArtists = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const { data, error: fetchError } = await getFeaturedArtists();
-        
-        if (fetchError) throw fetchError;
-        
-        setFeaturedArtists(data || []);
-      } catch (err) {
-        console.error('Error fetching featured artists:', err);
-        setError('Failed to load featured artists');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchFeaturedArtists();
-  }, []);
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <Layout>
-      <Head>
-        <title>Rec'd - Discover Your Next Favorite Artist</title>
-        <meta name="description" content="Get personalized music artist recommendations based on your favorites" />
-      </Head>
 
       <div className="hero-section">
         <h1 className="hero-title">Find Your Next Favorite Artist</h1>
@@ -53,26 +24,24 @@ export default function Home() {
       </div>
 
       <div className="featured-section">
-        <h2 className="featured-title">Featured Artists</h2>
+        <h2 className="featured-title">Or check some examples!</h2>
         
         {isLoading ? (
-          <LoadingSpinner message="Loading featured artists..." />
-        ) : error ? (
-          <div className="error-message">{error}</div>
-        ) : featuredArtists.length === 0 ? (
-          <div className="no-featured-message">
-            No featured artists available at the moment
-          </div>
+          <LoadingSpinner message="Loading..." />
         ) : (
           <div className="featured-grid">
-            {featuredArtists.map((item) => (
-              <ArtistCard
-                key={item.id}
-                artist={{
-                  name: item.artist_name,
-                  ...item.artist_data
-                }}
-              />
+            {Array(3).fill(featuredArtists).map((column, colIndex) => (
+              <div key={colIndex} className="featured-column">
+                {column.map((artistName, index) => (
+                  <Link 
+                    href={`/${slugify(artistName)}`} 
+                    key={`${colIndex}-${index}`}
+                    className="featured-artist-link"
+                  >
+                    {artistName}
+                  </Link>
+                ))}
+              </div>
             ))}
           </div>
         )}
