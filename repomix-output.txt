@@ -1,0 +1,6397 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+
+Additional Info:
+----------------
+
+================================================================
+Directory Structure
+================================================================
+components/
+  AuthPrompt.js
+  ErrorBoundary.js
+  Header.js
+  Layout.js
+  LoadingSpinner.js
+  RecommendationCard.js
+  RecommendationGrid.js
+  RecommendationsFallback.js
+  SearchBar.js
+  SearchLimitReached.js
+  SEO.js
+data/
+  featured-artists.json
+hooks/
+  useAuth.js
+  useRecommendations.js
+  useSearch.js
+  useUserLimits.js
+lib/
+  cache-manager.js
+  logger.js
+  openai-service.js
+  openai.js
+  prompts.js
+  recommendations-cache.js
+  spotify.js
+  supabase.js
+  utils.js
+pages/
+  admin/
+    manage-featured.js
+  api/
+    auth/
+      callback/
+        spotify.js
+      check-limit.js
+    recommendations/
+      [artistName]/
+        status.js
+      [artistName].js
+    search-suggestions.js
+  auth/
+    login.js
+    signup.js
+  _app.js
+  _document.js
+  [artistSlug].js
+  index.js
+scripts/
+  cache-featured-artists.js
+  create-database.sql
+  search-artist.js
+styles/
+  artist-page.css
+  auth.css
+  error-fallbacks.css
+  globals.css
+  recommendations.css
+.eslintrc.json
+.gitignore
+CLAUDE.md
+jsconfig.json
+next.config.js
+package.json
+README.md
+
+================================================================
+Files
+================================================================
+
+================
+File: components/AuthPrompt.js
+================
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+
+export default function AuthPrompt({ message = "Sign in to see recommendations" }) {
+  const router = useRouter();
+  const currentPath = router.asPath;
+  
+  return (
+    <div className="auth-prompt">
+      <div className="auth-prompt-content">
+        <h2 className="auth-prompt-title">Want to see more?</h2>
+        <p className="auth-prompt-message">{message}</p>
+        
+        <div className="auth-prompt-actions">
+          <Link 
+            href={`/auth/login?redirect=${encodeURIComponent(currentPath)}`}
+            className="auth-prompt-login"
+          >
+            Log In
+          </Link>
+          
+          <Link 
+            href={`/auth/signup?redirect=${encodeURIComponent(currentPath)}`}
+            className="auth-prompt-signup"
+          >
+            Sign Up
+          </Link>
+        </div>
+        
+        <p className="auth-prompt-note">
+          New users can make up to 3 artist searches!
+        </p>
+      </div>
+    </div>
+  );
+}
+
+================
+File: components/ErrorBoundary.js
+================
+import React from 'react';
+import logger from '../lib/logger';
+
+/**
+ * Error Boundary component to catch errors in children components
+ * and display a fallback UI instead of crashing the application
+ */
+export default class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    // Update state so next render shows fallback UI
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // Log the error to an error reporting service
+    logger.error('ErrorBoundary caught an error:', error, errorInfo);
+    this.setState({ errorInfo });
+  }
+
+  render() {
+    const { hasError, error } = this.state;
+    const { fallback, children } = this.props;
+
+    if (hasError) {
+      // Use the provided fallback or default error UI
+      if (fallback) {
+        return fallback(error);
+      }
+
+      // Default error UI
+      return (
+        <div className="error-boundary">
+          <h2>Something went wrong.</h2>
+          <p>Please try refreshing the page or contact support if the problem persists.</p>
+          <button onClick={() => window.location.reload()}>Refresh Page</button>
+        </div>
+      );
+    }
+
+    return children;
+  }
+}
+
+================
+File: components/Header.js
+================
+import Link from 'next/link';
+import { useAuth } from '../hooks/useAuth';
+import { useRouter } from 'next/router';
+
+export default function Header() {
+  const { user, logout, searchCount, isAdmin } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    const { success } = await logout();
+    if (success) {
+      router.push('/');
+    }
+  };
+
+  return (
+    <header className="header">
+      <div className="header-content">
+        <div className="header-left">
+          <Link href="/" className="logo">
+            Rec'd
+          </Link>
+        </div>
+        
+        <div className="header-right">
+          {user ? (
+            <div className="user-menu">
+              <span className="user-email">{user.email}</span>
+              <span className="search-count">Searches: {searchCount}/3</span>
+              
+              {isAdmin && (
+                <Link href="/admin/manage-featured" className="admin-link">
+                  Admin
+                </Link>
+              )}
+              
+              <button onClick={handleLogout} className="logout-button">
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <div className="auth-buttons">
+              <Link href="/auth/login" className="login-button">
+                Log In
+              </Link>
+              <Link href="/auth/signup" className="signup-button">
+                Sign Up
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+================
+File: components/Layout.js
+================
+import Link from 'next/link';
+import { useAuth } from '../hooks/useAuth';
+import { useRouter } from 'next/router';
+import SEO from './SEO';
+
+export default function Layout({ 
+  children, 
+  title = "Rec'd - Music Discovery",
+  description = "Discover new music artists based on your favorites",
+  canonical,
+  ogImage,
+  ogType
+}) {
+  const { user, profile, logout, isAuthenticated, searchCount } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    const { success } = await logout();
+    if (success) {
+      router.push('/');
+    }
+  };
+
+  // Prepare only props that were passed to Layout
+  const seoProps = {
+    title,
+    ...(description && { description }),
+    ...(canonical && { canonical }),
+    ...(ogImage && { ogImage }),
+    ...(ogType && { ogType })
+  };
+  
+  return (
+    <>
+      <SEO {...seoProps} />
+
+      <div className="layout">
+        <header className="header">
+          <div className="header-content">
+            <div className="left">
+              <Link href="/" className="logo">
+                Rec'd
+              </Link>
+            </div>
+            
+            <div className="right">
+              {isAuthenticated ? (
+                <div className="user-menu">
+                  <span className="user-info">
+                    {user.email} | Searches: {searchCount}/3
+                  </span>
+                  {profile?.is_admin && (
+                    <Link href="/admin/manage-featured" className="admin-link">
+                      Admin
+                    </Link>
+                  )}
+                  <button onClick={handleLogout} className="logout-button">
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="auth-links">
+                  <Link href="/auth/login" className="login-link">
+                    Login
+                  </Link>
+                  <Link href="/auth/signup" className="signup-link">
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="main-content">
+          {children}
+        </main>
+
+        <footer className="footer">
+          <div className="footer-content">
+            <p>&copy; {new Date().getFullYear()} Rec'd - Find your next favorite artist</p>
+          </div>
+        </footer>
+      </div>
+    </>
+  );
+}
+
+================
+File: components/LoadingSpinner.js
+================
+export default function LoadingSpinner({ size = 'medium', message = 'Loading...' }) {
+  const sizeClass = {
+    small: 'spinner-small',
+    medium: 'spinner-medium',
+    large: 'spinner-large'
+  }[size] || 'spinner-medium';
+
+  return (
+    <div className="loading-spinner-container">
+      <div className={`loading-spinner ${sizeClass}`}>
+        <div className="spinner-ring"></div>
+      </div>
+      {message && <p className="loading-message">{message}</p>}
+    </div>
+  );
+}
+
+================
+File: components/RecommendationCard.js
+================
+import { useState } from 'react';
+import Link from 'next/link';
+import { slugify } from '../lib/utils';
+
+export default function RecommendationCard({ 
+  recommendation, 
+  type = "ARTIST", // Default type if not provided
+  image = null, // Default image if not provided
+  sourceUrl = null // Default source URL if not provided
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  // Extract data from recommendation
+  const { name, reason } = recommendation;
+  
+  // Determine title based on type (would be populated from actual data)
+  let title = name;
+  let subtitle = null;
+  
+  if (type === "SONG") {
+    // For songs, title is the song name and subtitle is artist name
+    subtitle = "Artist Name"; // This would come from actual data
+  } else if (type === "ALBUM") {
+    // For albums, title is album name and subtitle is artist name
+    subtitle = "Artist Name"; // This would come from actual data
+  }
+  
+  // Placeholder image if none provided
+  const imageUrl = image || 'https://via.placeholder.com/300';
+  
+  // Source information
+  const source = "Sources: 1, 2";
+  
+  return (
+    <div 
+      className={`recommendation-card ${isHovered ? 'hovered' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="recommendation-image-container">
+        <img 
+          src={imageUrl} 
+          alt={title}
+          className="recommendation-image"
+        />
+        <div className="recommendation-type-badge">{type}</div>
+      </div>
+      
+      <div className="recommendation-content">
+        <Link href={`/${slugify(name)}`} className="recommendation-title-link">
+          <h3 className="recommendation-title">{title}</h3>
+          {subtitle && <div className="recommendation-subtitle">{subtitle}</div>}
+        </Link>
+        
+        <p className="recommendation-description">{reason}</p>
+        
+        <div className="recommendation-source">
+          {sourceUrl ? (
+            <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="source-link">
+              {source}
+            </a>
+          ) : (
+            <span>{source}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+================
+File: components/RecommendationGrid.js
+================
+import RecommendationCard from './RecommendationCard';
+
+export default function RecommendationGrid({ recommendations, title }) {
+  if (!recommendations || recommendations.length === 0) {
+    return null;
+  }
+  
+  // These would normally come from API data, using placeholders for now
+  const typeOptions = ["ARTIST", "ALBUM", "SONG"];
+  const placeholderImages = [
+    'https://i.scdn.co/image/ab67616d0000b273fd61ea11a6e3258526338aa7',
+    'https://i.scdn.co/image/ab67616d0000b2731b6cc1fd0969032fba56dcd3', 
+    'https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b',
+    'https://i.scdn.co/image/ab67616d0000b2739b19c107109de740bad72df5',
+    'https://i.scdn.co/image/ab67616d0000b273d1c7761374467713127dd2ca',
+    'https://i.scdn.co/image/ab67616d0000b273b2e8b39fc20fad753d438a0f'
+  ];
+  
+  return (
+    <div className="recommendations-section">
+      {title && <h2 className="recommendations-title">{title}</h2>}
+      
+      <div className="recommendations-grid">
+        {recommendations.map((recommendation, index) => {
+          // For demo purposes, assign random type and image
+          // In production, this would come from actual API data
+          const type = typeOptions[Math.floor(Math.random() * typeOptions.length)];
+          const image = placeholderImages[index % placeholderImages.length];
+          
+          return (
+            <RecommendationCard 
+              key={index} 
+              recommendation={recommendation}
+              type={type}
+              image={image}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+================
+File: components/RecommendationsFallback.js
+================
+import { useAuth } from '../hooks/useAuth';
+import Link from 'next/link';
+
+/**
+ * Fallback component to display when recommendations fail to load
+ * Shows different messages based on error type and user status
+ */
+export default function RecommendationsFallback({ error, retry, artistName }) {
+  const { user } = useAuth();
+
+  // Check if error is a limit reached error
+  const isLimitError = error?.message?.includes('limit reached') || error?.includes('limit reached');
+  
+  // Check if error is a login required error
+  const isLoginError = error?.message?.includes('Login required') || error?.includes('Login required');
+
+  // Show limit reached error
+  if (isLimitError) {
+    return (
+      <div className="recommendations-fallback limit-error">
+        <h2>Search Limit Reached</h2>
+        <p>
+          You have reached your limit of 3 artist searches. Each new search contributes
+          to our shared recommendation database for everyone to use.
+        </p>
+        <div className="fallback-actions">
+          <Link href="/" className="fallback-button">
+            Explore Featured Artists
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login required error for non-authenticated users
+  if (isLoginError || !user) {
+    return (
+      <div className="recommendations-fallback login-error">
+        <h2>Login Required</h2>
+        <p>
+          To generate recommendations for {artistName || 'this artist'}, please log in.
+          Each logged-in user can search for up to 3 artists, and all search results
+          are cached for everyone to use.
+        </p>
+        <div className="fallback-actions">
+          <Link href={`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`} className="fallback-button">
+            Log In
+          </Link>
+          <Link href={`/auth/signup?redirect=${encodeURIComponent(window.location.pathname)}`} className="fallback-button signup">
+            Sign Up
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Generic error with retry
+  return (
+    <div className="recommendations-fallback generic-error">
+      <h2>Couldn't Load Recommendations</h2>
+      <p>
+        {error?.message || error || 'We had trouble loading recommendations. Please try again.'}
+      </p>
+      <div className="fallback-actions">
+        {retry && (
+          <button onClick={retry} className="fallback-button">
+            Try Again
+          </button>
+        )}
+        <Link href="/" className="fallback-button secondary">
+          Go to Home
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+================
+File: components/SearchBar.js
+================
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useDebounce } from 'use-debounce';
+import { slugify } from '../lib/utils';
+import logger from '../lib/logger';
+
+export default function SearchBar() {
+  const [query, setQuery] = useState('');
+  const [debouncedQuery] = useDebounce(query, 300);
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
+  const router = useRouter();
+
+  // Fetch search suggestions
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!debouncedQuery.trim()) {
+        setSuggestions([]);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/search-suggestions?query=${encodeURIComponent(debouncedQuery)}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch suggestions');
+        }
+        
+        const data = await response.json();
+        setSuggestions(data);
+      } catch (error) {
+        logger.error('Error fetching suggestions:', error);
+        setSuggestions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, [debouncedQuery]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Handle input change
+  const handleInputChange = (e) => {
+    setQuery(e.target.value);
+    setShowSuggestions(true);
+  };
+
+  // Handle search submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (query.trim()) {
+      router.push(`/${slugify(query)}`);
+      setQuery('');
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (artist) => {
+    router.push(`/${slugify(artist.name)}`);
+    setQuery('');
+    setShowSuggestions(false);
+  };
+
+  return (
+    <div className="search-container" ref={searchRef}>
+      <form onSubmit={handleSubmit} className="search-form">
+        <div className="search-input-wrapper">
+          <input
+            type="text"
+            value={query}
+            onChange={handleInputChange}
+            onFocus={() => setShowSuggestions(true)}
+            placeholder="Search for any music artist..."
+            className="search-input"
+            aria-label="Search for artists"
+          />
+          {query && (
+            <button
+              type="button"
+              className="clear-button"
+              onClick={() => {
+                setQuery('');
+                setSuggestions([]);
+              }}
+              aria-label="Clear search"
+            >
+              ×
+            </button>
+          )}
+          <button type="submit" className="search-button" aria-label="Search">
+            {isLoading ? (
+              <span className="loading-spinner"></span>
+            ) : (
+              <svg className="search-icon" viewBox="0 0 24 24">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+            )}
+          </button>
+        </div>
+        
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="suggestions-container">
+            <ul className="suggestions-list">
+              {suggestions.map((artist) => (
+                <li
+                  key={artist.id}
+                  className="suggestion-item"
+                  onClick={() => handleSuggestionClick(artist)}
+                >
+                  {artist.image && (
+                    <img
+                      src={artist.image}
+                      alt={artist.name}
+                      className="suggestion-image"
+                      width={40}
+                      height={40}
+                    />
+                  )}
+                  <div className="suggestion-info">
+                    <span className="suggestion-name">{artist.name}</span>
+                    {artist.popularity && (
+                      <span className="suggestion-popularity">
+                        Popularity: {artist.popularity}%
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </form>
+    </div>
+  );
+}
+
+================
+File: components/SearchLimitReached.js
+================
+export default function SearchLimitReached() {
+  return (
+    <div className="search-limit-reached">
+      <div className="limit-reached-content">
+        <h2 className="limit-reached-title">Search Limit Reached</h2>
+        
+        <p className="limit-reached-message">
+          You've used all 3 of your searches. 
+          However, you can still explore any artists that have already been searched by other users.
+        </p>
+        
+        <div className="limit-reached-suggestions">
+          <h3>Try these popular searches:</h3>
+          <ul>
+            <li>Taylor Swift</li>
+            <li>Daft Punk</li>
+            <li>Foo Fighters</li>
+            <li>David Bowie</li>
+          </ul>
+        </div>
+        
+        <p className="limit-reached-info">
+          Every time a user searches for an artist, the results are cached and become available to everyone!
+        </p>
+      </div>
+    </div>
+  );
+}
+
+================
+File: components/SEO.js
+================
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+
+/**
+ * SEO component for managing all page head elements
+ * 
+ * @param {Object} props
+ * @param {string} props.title - Page title
+ * @param {string} props.description - Page description
+ * @param {string} props.canonical - Canonical URL (optional - auto-generated if not provided)
+ * @param {string} props.ogImage - Open Graph image URL
+ * @param {string} props.ogType - Open Graph type (default: website)
+ */
+export default function SEO({ 
+  title = "Rec'd - Discover Your Next Favorite Artist",
+  description = "Get personalized music artist recommendations based on your favorites",
+  canonical,
+  ogImage = "/og-image.jpg",
+  ogType = "website"
+}) {
+  const router = useRouter();
+  
+  // Auto-generate canonical URL if not provided
+  const canonicalUrl = canonical || 
+    (router.pathname !== '/' ? `https://recd.app${router.asPath}` : 'https://recd.app');
+  
+  // Build the full title with brand
+  const fullTitle = title.includes("Rec'd") ? title : `${title} | Rec'd`;
+  
+  return (
+    <Head>
+      {/* Primary Meta Tags */}
+      <title>{fullTitle}</title>
+      <meta name="description" content={description} />
+      <link rel="canonical" href={canonicalUrl} />
+      
+      {/* Open Graph / Facebook */}
+      <meta property="og:type" content={ogType} />
+      <meta property="og:title" content={fullTitle} />
+      <meta property="og:description" content={description} />
+      {ogImage && <meta property="og:image" content={ogImage} />}
+      <meta property="og:url" content={canonicalUrl} />
+      
+      {/* Twitter */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={fullTitle} />
+      <meta name="twitter:description" content={description} />
+      {ogImage && <meta name="twitter:image" content={ogImage} />}
+    </Head>
+  );
+}
+
+================
+File: data/featured-artists.json
+================
+[
+  "Steven Wilson",
+  "Radiohead",
+  "Porcupine Tree"
+]
+
+================
+File: hooks/useAuth.js
+================
+import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { supabase, signIn, signUp, signOut, getCurrentUser, getUserProfile, createUserProfile } from '../lib/supabase';
+
+// Create context for auth
+const AuthContext = createContext(null);
+
+// Provider component
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Load user on initial render
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        setLoading(true);
+        const { user: currentUser, error: userError } = await getCurrentUser();
+        
+        if (userError) throw userError;
+        
+        if (currentUser) {
+          setUser(currentUser);
+          
+          // Get user profile
+          const { data: profileData, error: profileError } = await getUserProfile(currentUser.id);
+          
+          if (profileError && profileError.code !== 'PGRST116') { // Not found error
+            throw profileError;
+          }
+          
+          if (profileData) {
+            setProfile(profileData);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading user:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUser();
+    
+    // Set up auth state listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        
+        // Get or create profile
+        const { data: profileData, error: profileError } = await getUserProfile(session.user.id);
+        
+        if (profileError && profileError.code === 'PGRST116') { // Not found error
+          // Create new profile
+          await createUserProfile(session.user.id);
+          const { data: newProfile } = await getUserProfile(session.user.id);
+          setProfile(newProfile);
+        } else if (profileData) {
+          setProfile(profileData);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setProfile(null);
+      }
+    });
+    
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  // Login function
+  const login = useCallback(async (email, password) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error: signInError } = await signIn(email, password);
+      
+      if (signInError) throw signInError;
+      
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Register function
+  const register = useCallback(async (email, password) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error: signUpError } = await signUp(email, password);
+      
+      if (signUpError) throw signUpError;
+      
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Logout function
+  const logout = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { error: signOutError } = await signOut();
+      
+      if (signOutError) throw signOutError;
+      
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Context value
+  const value = {
+    user,
+    profile,
+    loading,
+    error,
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user,
+    searchCount: profile?.search_count || 0,
+    isAdmin: profile?.is_admin || false,
+    hasReachedSearchLimit: profile ? profile.search_count >= 3 : false
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// Custom hook
+export function useAuth() {
+  const context = useContext(AuthContext);
+  
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  
+  return context;
+}
+
+export default useAuth;
+
+================
+File: hooks/useRecommendations.js
+================
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from './useAuth';
+import { useRouter } from 'next/router';
+import logger from '../lib/logger';
+
+/**
+ * Custom hook for fetching artist recommendations with proper user flow control
+ * 
+ * Enforces these user flows:
+ * 1. Non-logged in users: Can only view cached recommendations
+ * 2. Logged in users: Can perform up to 3 searches for non-cached artists
+ * 
+ * @param {string} artistName - Artist name to get recommendations for
+ * @param {string} artistId - Optional Spotify artist ID if available
+ * @returns {Object} Recommendations data and state
+ */
+export default function useRecommendations(artistName, artistId = null) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+  const [isDataCached, setIsDataCached] = useState(false);
+  const { user, hasReachedSearchLimit } = useAuth();
+  const router = useRouter();
+
+  /**
+   * Check if recommendations are cached for this artist
+   */
+  const checkCachedStatus = useCallback(async () => {
+    if (!artistName) return;
+    
+    try {
+      // Make a HEAD request to check if recommendations exist without fetching data
+      const response = await fetch(`/api/recommendations/${encodeURIComponent(artistName)}/status`, {
+        method: 'HEAD'
+      });
+      
+      setIsDataCached(response.status === 200);
+      return response.status === 200;
+    } catch (err) {
+      logger.error('Error checking cache status:', err);
+      return false;
+    }
+  }, [artistName]);
+
+  /**
+   * Fetch recommendations for the given artist
+   * This will only return cached data unless refresh=true
+   */
+  const fetchRecommendations = useCallback(async (options = {}) => {
+    if (!artistName) {
+      return;
+    }
+
+    const { refresh = false } = options;
+
+    // Check if user is eligible to refresh recommendations
+    if (refresh) {
+      if (!user) {
+        setError('Login required to generate new recommendations');
+        return;
+      }
+      
+      if (hasReachedSearchLimit) {
+        setError('You have reached your search limit');
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setNotFound(false);
+      
+      // Build the API URL with optional refresh parameter
+      const url = `/api/recommendations/${encodeURIComponent(artistName)}${refresh ? '?refresh=true' : ''}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // If 404, either the artist doesn't exist or no cached data is available
+      if (response.status === 404) {
+        setNotFound(true);
+        setIsDataCached(false);
+        return;
+      }
+      
+      // If 403, user has reached search limit
+      if (response.status === 403) {
+        setError('Search limit reached');
+        return;
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch recommendations');
+      }
+      
+      const responseData = await response.json();
+      setData(responseData);
+      setIsDataCached(true);
+    } catch (err) {
+      logger.error('Error fetching recommendations:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [artistName, user, hasReachedSearchLimit]);
+
+  // Check cache status and fetch data when component mounts or artist changes
+  useEffect(() => {
+    if (artistName) {
+      // First check if recommendations are cached
+      checkCachedStatus().then(isCached => {
+        // If cached, fetch the data
+        // If not cached AND user is logged in (to respect user flow rules), fetch data
+        if (isCached || user) {
+          fetchRecommendations();
+        } else {
+          // Not cached and user not logged in - set not found
+          setNotFound(true);
+        }
+      });
+    }
+  }, [artistName, checkCachedStatus, fetchRecommendations, user]);
+
+  /**
+   * Generate new recommendations for this artist
+   * Only works for authenticated users who haven't reached their limit
+   */
+  const generateNewRecommendations = useCallback(async () => {
+    if (!user) {
+      router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
+      return;
+    }
+    
+    if (hasReachedSearchLimit) {
+      setError('You have reached your search limit');
+      return;
+    }
+    
+    // Use the fetchRecommendations function with refresh=true
+    await fetchRecommendations({ refresh: true });
+  }, [user, hasReachedSearchLimit, router, fetchRecommendations]);
+
+  return {
+    data,
+    loading,
+    error,
+    notFound,
+    isDataCached,
+    generateNewRecommendations,
+    hasResults: !!data,
+    artistInfo: data?.artist_data || null,
+    recommendations: data?.recommendations || []
+  };
+}
+
+================
+File: hooks/useSearch.js
+================
+import { useState, useCallback } from 'react';
+import { useDebounce } from 'use-debounce';
+import { searchArtist } from '../lib/spotify';
+
+/**
+ * Custom hook for artist search functionality
+ * @returns {Object} Search state and functions
+ */
+export default function useSearch() {
+  const [query, setQuery] = useState('');
+  const [debouncedQuery] = useDebounce(query, 300);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  /**
+   * Search for artists based on the current query
+   */
+  const fetchResults = useCallback(async () => {
+    if (!debouncedQuery.trim()) {
+      setResults([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Call the API route to avoid exposing credentials in client
+      const response = await fetch(`/api/search-suggestions?query=${encodeURIComponent(debouncedQuery)}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch search results');
+      }
+      
+      const data = await response.json();
+      setResults(data);
+    } catch (err) {
+      console.error('Search error:', err);
+      setError(err.message);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedQuery]);
+
+  // Trigger search when debounced query changes
+  useState(() => {
+    fetchResults();
+  }, [fetchResults, debouncedQuery]);
+
+  /**
+   * Handle query input change
+   * @param {string} value - New query value
+   */
+  const handleInputChange = useCallback((value) => {
+    setQuery(value);
+  }, []);
+
+  /**
+   * Clear search results and query
+   */
+  const clearSearch = useCallback(() => {
+    setQuery('');
+    setResults([]);
+  }, []);
+
+  return {
+    query,
+    results,
+    loading,
+    error,
+    handleInputChange,
+    clearSearch
+  };
+}
+
+================
+File: hooks/useUserLimits.js
+================
+import { useState, useEffect, useCallback } from 'react';
+import { getAppSettings } from '../lib/supabase';
+import { useAuth } from './useAuth';
+
+/**
+ * Custom hook for checking user limits and app settings
+ * @returns {Object} User limits and app settings
+ */
+export default function useUserLimits() {
+  const { user, profile } = useAuth();
+  const [appSettings, setAppSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch app settings
+  const fetchAppSettings = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error: settingsError } = await getAppSettings();
+      
+      if (settingsError) throw settingsError;
+      
+      setAppSettings(data || { max_users: 50, registration_open: true });
+    } catch (err) {
+      console.error('Error fetching app settings:', err);
+      setError(err.message);
+      // Set default values if we can't fetch settings
+      setAppSettings({ max_users: 50, registration_open: true });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load settings on initial render
+  useEffect(() => {
+    fetchAppSettings();
+  }, [fetchAppSettings]);
+
+  return {
+    loading,
+    error,
+    // User-specific limits
+    searchCount: profile?.search_count || 0,
+    searchLimit: 3,
+    searchRemaining: profile ? Math.max(0, 3 - profile.search_count) : 0,
+    hasReachedSearchLimit: profile ? profile.search_count >= 3 : false,
+    // App-wide settings
+    maxUsers: appSettings?.max_users || 50,
+    registrationOpen: appSettings?.registration_open ?? true,
+    isAdmin: profile?.is_admin || false,
+    // Check if a new user can register
+    canRegister: appSettings?.registration_open ?? true,
+    // Reload settings function
+    refreshSettings: fetchAppSettings
+  };
+}
+
+================
+File: lib/cache-manager.js
+================
+import { getCachedArtistRecommendations, cacheArtistRecommendations, markArtistAsFeatured } from './supabase';
+import logger from './logger';
+import { getArtistDetails } from './spotify';
+import { getArtistRecommendations } from './openai';
+
+// Memory cache to reduce database calls
+const memoryCache = new Map();
+
+/**
+ * Get cached recommendations for an artist, or generate new ones
+ * @param {string} artistName - Name of the artist
+ * @param {string} artistId - Spotify ID of the artist
+ * @param {boolean} forceRefresh - Whether to force a refresh of the cache
+ * @param {string|null} userId - User ID (for tracking purposes)
+ * @returns {Promise<Object>} - Artist data and recommendations
+ */
+export async function getArtistRecommendationsWithCache(artistName, artistId, forceRefresh = false, userId = null) {
+  try {
+    // Check memory cache first
+    const cacheKey = `recommendations_${artistId}`;
+    if (!forceRefresh && memoryCache.has(cacheKey)) {
+      logger.log(`Using in-memory cache for artist ${artistId}`);
+      return memoryCache.get(cacheKey);
+    }
+    
+    // Check database cache
+    if (!forceRefresh) {
+      const { data: cachedData, error: cacheError } = await getCachedArtistRecommendations(artistName);
+      
+      if (!cacheError && cachedData) {
+        logger.log('Cache hit for artist:', artistName);
+        // Update memory cache
+        memoryCache.set(cacheKey, cachedData);
+        return cachedData;
+      }
+    }
+    
+    logger.log('Cache miss for artist:', artistName, 'Fetching fresh data...');
+    
+    // Get detailed artist info from Spotify
+    const artistData = await getArtistDetails(artistId);
+    
+    // Get recommendations from OpenAI with web search enabled
+    const recommendations = await getArtistRecommendations(artistName, artistId, true);
+    
+    // Cache the results
+    const { error: cacheError } = await cacheArtistRecommendations(
+      artistName,
+      artistId,
+      artistData,
+      recommendations,
+      userId
+    );
+    
+    if (cacheError) {
+      logger.error('Error caching artist recommendations:', cacheError);
+    }
+    
+    const resultData = {
+      artist_name: artistName,
+      artist_spotify_id: artistId,
+      artist_data: artistData,
+      recommendations: recommendations,
+      is_featured: false,
+      created_by: userId
+    };
+    
+    // Update memory cache
+    memoryCache.set(cacheKey, resultData);
+    
+    return resultData;
+  } catch (error) {
+    logger.error('Error in getArtistRecommendationsWithCache:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if an artist has cached recommendations
+ * @param {string} artistId - Spotify ID of the artist
+ * @returns {Promise<boolean>} - Whether the artist has cached recommendations
+ */
+export async function hasArtistCachedRecommendations(artistId) {
+  try {
+    // Check memory cache first
+    const cacheKey = `recommendations_${artistId}`;
+    if (memoryCache.has(cacheKey)) {
+      return true;
+    }
+    
+    // Check database cache
+    const { data, error } = await getCachedArtistRecommendations(null, artistId);
+    return !error && data;
+  } catch (error) {
+    logger.error('Error checking if artist has cached recommendations:', error);
+    return false;
+  }
+}
+
+/**
+ * Cache recommendations for a list of featured artists
+ * @param {Array<Object>} artists - List of artists with name and id
+ * @returns {Promise<Array>} - Results of the cache operation
+ */
+export async function cacheFeaturedArtists(artists) {
+  const results = [];
+  
+  for (const artist of artists) {
+    try {
+      logger.log(`Caching featured artist: ${artist.name}`);
+      
+      // Check if already cached
+      const { data: existingData, error: existingError } = await getCachedArtistRecommendations(artist.name);
+      
+      if (!existingError && existingData) {
+        // Mark as featured if not already
+        if (!existingData.is_featured) {
+          await markArtistAsFeatured(existingData.id, true);
+        }
+        
+        results.push({
+          name: artist.name,
+          status: 'already_cached',
+          success: true
+        });
+        
+        continue;
+      }
+      
+      // Get detailed artist info from Spotify
+      const artistData = await getArtistDetails(artist.id);
+      
+      // Get recommendations from OpenAI with web search
+      const recommendations = await getArtistRecommendations(artist.name, artist.id, true);
+      
+      // Cache the results with featured flag
+      const { error: cacheError } = await cacheArtistRecommendations(
+        artist.name,
+        artist.id,
+        artistData,
+        recommendations,
+        null, // No user ID for featured artists
+        true  // Mark as featured
+      );
+      
+      if (cacheError) {
+        throw cacheError;
+      }
+      
+      results.push({
+        name: artist.name,
+        status: 'newly_cached',
+        success: true
+      });
+    } catch (error) {
+      logger.error(`Error caching featured artist ${artist.name}:`, error);
+      
+      results.push({
+        name: artist.name,
+        status: 'error',
+        success: false,
+        error: error.message
+      });
+    }
+  }
+  
+  return results;
+}
+
+// Ensure Map is defined in global scope
+if (typeof window === 'undefined' && typeof global !== 'undefined') {
+  global.Map = Map;
+}
+
+================
+File: lib/logger.js
+================
+// Logger utility to properly handle console statements
+
+/* eslint-disable no-console */
+const logger = {
+  log: (...args) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(...args);
+    }
+  },
+  
+  error: (...args) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(...args);
+    }
+  },
+  
+  warn: (...args) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(...args);
+    }
+  },
+  
+  info: (...args) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(...args);
+    }
+  }
+};
+/* eslint-enable no-console */
+
+export default logger;
+
+================
+File: lib/openai-service.js
+================
+'use client';
+
+import { 
+  RECOMMENDATION_SYSTEM_PROMPT,
+  RECOMMENDATION_USER_PROMPT_TEMPLATE,
+  extractJsonFromText,
+  validateRecommendations
+} from './prompts';
+import logger from './logger';
+
+// Cache to prevent duplicate API calls for the same artist
+const llmCallCache = new Set();
+
+// Initialize the cache from sessionStorage if available
+if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+  try {
+    const cachedArtists = JSON.parse(sessionStorage.getItem('llmCalledArtists') || '[]');
+    cachedArtists.forEach(artistId => llmCallCache.add(artistId));
+    logger.log(`Initialized LLM call cache with ${llmCallCache.size} artists`);
+  } catch (error) {
+    logger.error('Error initializing cache from sessionStorage:', error);
+  }
+}
+
+// Track if an artist has already been processed
+function hasProcessedArtist(artistId) {
+  return llmCallCache.has(artistId);
+}
+
+// Mark an artist as processed to prevent duplicate calls
+function markArtistAsProcessed(artistId) {
+  if (!artistId) return;
+  
+  llmCallCache.add(artistId);
+  
+  // Store in sessionStorage to persist across page refreshes
+  if (typeof sessionStorage !== 'undefined') {
+    try {
+      const cachedArtists = JSON.parse(sessionStorage.getItem('llmCalledArtists') || '[]');
+      if (!cachedArtists.includes(artistId)) {
+        cachedArtists.push(artistId);
+        sessionStorage.setItem('llmCalledArtists', JSON.stringify(cachedArtists));
+      }
+    } catch (error) {
+      logger.error('Error updating sessionStorage:', error);
+    }
+  }
+}
+
+// Generate recommendations using OpenAI with web search
+export async function generateRecommendations(artistName, artistId, options = {}) {
+  if (!artistName || !artistId) {
+    throw new Error('Artist name and ID are required');
+  }
+  
+  // Check if this artist has already been processed
+  if (hasProcessedArtist(artistId)) {
+    logger.warn(`Artist ${artistId} has already been processed. No duplicate calls allowed.`);
+    throw new Error('Artist already processed - use cached data');
+  }
+  
+  // Check if the user is logged in and has searches remaining
+  await checkUserAccess();
+  
+  // Mark this artist as processed immediately to prevent duplicate calls
+  // Even if the call fails, we don't want to retry automatically
+  markArtistAsProcessed(artistId);
+  
+  try {
+    // Dispatch event to indicate generation has started
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('llm-generation-start', { 
+        detail: { artistId, artistName } 
+      }));
+    }
+    
+    // Prepare the user prompt from the template
+    const prompt = RECOMMENDATION_USER_PROMPT_TEMPLATE(artistName, artistId);
+    
+    // Call the OpenAI API via our server endpoint
+    const response = await fetch('/api/openai', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'system',
+            content: RECOMMENDATION_SYSTEM_PROMPT
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        forceGeneration: true,
+        webSearch: true,
+        oneTimeOnly: true // Flag indicating this should be cached
+      }),
+      signal: options.signal // Pass abort signal if provided
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      logger.error('API error:', errorData);
+      throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Dispatch event to indicate generation has completed
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('llm-generation-end', { 
+        detail: { artistId, artistName, success: true } 
+      }));
+    }
+    
+    if (!data.success || !data.data) {
+      throw new Error('No content in the API response');
+    }
+    
+    // Extract JSON from the response
+    const content = data.data;
+    const extractedJson = extractJsonFromText(content);
+    
+    if (!extractedJson) {
+      logger.error('Failed to extract JSON from response:', content);
+      throw new Error('Failed to extract valid JSON from API response');
+    }
+    
+    // Parse and validate the recommendations
+    const recommendations = JSON.parse(extractedJson);
+    const validatedRecommendations = validateRecommendations(recommendations);
+    
+    // Limit to 10 recommendations maximum
+    const limitedRecommendations = validatedRecommendations.slice(0, 10);
+    
+    return limitedRecommendations;
+  } catch (error) {
+    logger.error('Error generating recommendations:', error);
+    
+    // Dispatch event to indicate generation has ended with error
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('llm-generation-end', { 
+        detail: { artistId, artistName, success: false, error: true } 
+      }));
+    }
+    
+    throw error;
+  }
+}
+
+// Check if the user is logged in and has searches remaining
+async function checkUserAccess() {
+  try {
+    // Import supabase to check authentication
+    const { supabase } = await import('./supabase');
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      logger.warn('User not authenticated');
+      throw new Error('Authentication required - only logged-in users can generate recommendations');
+    }
+    
+    // Check if the user has reached their search limit
+    const response = await fetch('/api/auth/check-limit', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to check search limit');
+    }
+    
+    const limitData = await response.json();
+    if (limitData.hasReachedLimit) {
+      logger.warn('User has reached search limit');
+      throw new Error('Search limit reached - cannot generate new recommendations');
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error('Error checking user access:', error);
+    throw error;
+  }
+}
+
+// Ensure Set is defined in global scope
+if (typeof window === 'undefined' && typeof global !== 'undefined') {
+  global.Set = Set;
+}
+
+================
+File: lib/openai.js
+================
+import OpenAI from 'openai';
+import logger from './logger';
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+/**
+ * Get artist recommendations from OpenAI using web search capability
+ * @param {string} artistName - The name of the artist
+ * @param {string} artistId - Spotify ID of the artist (for tracking in logs)
+ * @param {boolean} useWebSearch - Whether to use web search capability (default: true)
+ * @returns {Promise<Array>} - Array of artist recommendations
+ */
+export async function getArtistRecommendations(artistName, artistId = null, useWebSearch = true) {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
+    // System prompt for web search
+    const systemPrompt = useWebSearch ? 
+      `You are a music-industry research specialist with full websearch access. ` +
+      `Find the MOST RECENT (past 12 months) instances where ${artistName} has ` +
+      `EXPLICITLY recommended another artist, album, or song—only in interviews, podcasts, ` +
+      `YouTube videos, or social-media posts (no hearsay). ` +
+      `For each entry you must:` +
+      `\n  • Verify that the sourceUrl responds over HTTPS with HTTP 200.` +
+      `\n  • Only use domains ending in .com, .org, or .net.` +
+      `\n  • Extract: name, type (artist|album|song), exact quote, year, month, source type, domain, author (if known).` +
+      `\nCRITICAL:` +
+      `\n 1) Output only valid JSON: an array starting with "[" and ending with "]".` +
+      `\n 2) Do NOT wrap in code fences or add any text before/after.` +
+      `\n 3) If nothing is found, return \`[]\` exactly.` :
+      
+      // Fallback system prompt for when web search is not available
+      `You are an expert on modern music. ` +
+      `Provide 6 artists, albums, or songs similar to ${artistName}. ` +
+      `Return ONLY a JSON array with objects containing "name" (artist/album/song name), ` +
+      `"type" (artist|album|song), and "reason" (brief explanation why it's similar). ` +
+      `Each reason should be conversational and limited to 100 characters max. ` +
+      `Output format: [{name:"Name", type:"artist|album|song", reason:"Brief reason"}]. ` +
+      `No text or code fences before or after the JSON.`;
+
+    // User prompt for web search
+    const userPrompt = useWebSearch ?
+      `Search for instances in the last 12 months where ${artistName}${artistId ? ` (id: ${artistId})` : ''} ` +
+      `has explicitly recommended music to others (artist, album, or song) in interviews, ` +
+      `podcasts, YouTube videos, or social-media posts.  
+
+       For each recommendation, verify that the URL:  
+       • Uses HTTPS  
+       • Returns HTTP status 200  
+       • Is on a .com, .org, or .net domain  
+
+       Output **only** a JSON array of objects with exactly these fields:
+       [
+         {
+           "name":        "Artist/Album/Song Name",
+           "type":        "artist|album|song",
+           "quote":       "Exact excerpt of recommendation",
+           "year":        "YYYY",
+           "month":       "MM",
+           "source":      "Interview|Podcast|YouTube|Social media",
+           "domain":      "example.com", 
+           "author":      "Interviewer or poster name (if known)",
+           "sourceUrl":   "https://…"
+         },
+         …
+       ]
+
+       **IMPORTANT:**
+       - Do not include any text before or after the JSON.
+       - If any record fails URL or domain validation, omit it.
+       - If you find no valid recommendations, return \`[]\`.` :
+      
+      // Fallback user prompt
+      `Give me 6 music recommendations similar to ${artistName}. Include only artists, albums, or songs that real fans of ${artistName} would enjoy, with a focus on similar style and sound.`;
+
+    logger.log(`Making OpenAI request for artist ${artistName}${artistId ? ` (${artistId})` : ''} with web search: ${useWebSearch}`);
+
+    // Create the OpenAI chat completion
+    const response = await openai.chat.completions.create({
+      model: useWebSearch ? "gpt-4-turbo" : "gpt-3.5-turbo",
+      messages: [
+        { 
+          role: "system", 
+          content: systemPrompt
+        },
+        { 
+          role: "user", 
+          content: userPrompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: useWebSearch ? 4000 : 1000,
+      tools: useWebSearch ? [{ type: "web_search" }] : undefined,
+      tool_choice: useWebSearch ? "auto" : undefined
+    });
+
+    // Extract response content
+    const responseText = response.choices[0].message.content;
+    
+    // Handle any text before or after the JSON array
+    let jsonString = responseText.trim();
+    
+    // If response has backticks or other formatting, extract just the JSON part
+    if (jsonString.includes('```')) {
+      jsonString = jsonString.split('```')[1].replace('json', '').trim();
+    }
+    
+    try {
+      // Parse and validate the JSON
+      const recommendations = JSON.parse(jsonString);
+      
+      // Validate the response structure
+      if (!Array.isArray(recommendations)) {
+        throw new Error('Invalid response format - not an array');
+      }
+      
+      // If no recommendations found, return empty array
+      if (recommendations.length === 0) {
+        logger.log(`No recommendations found for ${artistName}`);
+        return [];
+      }
+      
+      // If we're using web search, validate the structure with required fields
+      if (useWebSearch) {
+        const validatedRecommendations = recommendations.filter(rec => {
+          const hasRequiredFields = rec.name && rec.type && (rec.quote || rec.reason);
+          const validType = ['artist', 'album', 'song'].includes(rec.type.toLowerCase());
+          return hasRequiredFields && validType;
+        });
+        
+        // Limit to 10 recommendations
+        return validatedRecommendations.slice(0, 10);
+      }
+      
+      // For non-web search, ensure we have exactly 6 recommendations
+      return recommendations.slice(0, 6);
+    } catch (parseError) {
+      logger.error('Error parsing OpenAI response:', parseError);
+      logger.error('Raw response:', responseText);
+      throw new Error('Failed to parse recommendation data');
+    }
+  } catch (error) {
+    logger.error('OpenAI API error:', error);
+    throw error;
+  }
+}
+
+================
+File: lib/prompts.js
+================
+/**
+ * Shared prompts for recommendation queries
+ * Used by both the LLM service and caching script to ensure consistency
+ */
+
+'use client';
+
+import logger from './logger';
+
+/**
+ * Primary system prompt for OpenAI with web search capability
+ * Used for both the main application and the caching script
+ */
+const RECOMMENDATION_SYSTEM_PROMPT =
+  `You are a music-industry research specialist with full websearch access. ` +
+  `Find the MOST RECENT (past 12 months) instances where the target artist has ` +
+  `EXPLICITLY recommended another artist, album, or song—only in interviews, podcasts, ` +
+  `YouTube videos, or social-media posts (no hearsay). ` +
+  `For each entry you must:` +
+  `\n  • Verify that the sourceUrl responds over HTTPS with HTTP 200.` +
+  `\n  • Only use domains ending in .com, .org, or .net.` +
+  `\n  • Extract: name, type (artist|album|song), exact quote, year, month, source type, domain, author (if known).` +
+  `\nCRITICAL:` +
+  `\n 1) Output only valid JSON: an array starting with "[" and ending with "]".` +
+  `\n 2) Do NOT wrap in code fences or add any text before/after.` +
+  `\n 3) If nothing is found, return \`[]\` exactly.`;
+
+/**
+ * Fallback system prompt for OpenAI (when web search isn't available)
+ * Used as a fallback in both the app and caching script
+ */
+const RECOMMENDATION_FALLBACK_SYSTEM_PROMPT =
+  `You are an expert on modern music. ` +
+  `Within the past 12 months, identify explicit music recommendations ` +
+  `made by the given artist—ONLY direct recommendations in interviews, podcasts, ` +
+  `or social posts. ` +
+  `For each entry:` +
+  `\n  • Provide name, type, quote, year, month, source, and sourceUrl.` +
+  `\nCRITICAL:` +
+  `\n 1) Use only valid JSON (array form).` +
+  `\n 2) No explanatory text or code fences.` +
+  `\n 3) If none found, return \`[]\` exactly.`;
+
+/**
+ * User prompt template for recommendation requests
+ * This template is populated with artist name and ID
+ */
+const RECOMMENDATION_USER_PROMPT_TEMPLATE = (artistName, artistId) => `
+Search for instances in the last 12 months where ${artistName} (id: ${artistId})
+has explicitly recommended music to others (artist, album, or song) in interviews,
+podcasts, YouTube videos, or social-media posts.  
+
+For each recommendation, verify that the URL:  
+  • Uses HTTPS  
+  • Returns HTTP status 200  
+  • Is on a .com, .org, or .net domain  
+
+Output **only** a JSON array of objects with exactly these fields:
+[
+  {
+    "name":        "Artist/Album/Song Name",
+    "type":        "artist|album|song",
+    "quote":       "Exact excerpt of recommendation",
+    "year":        "YYYY",
+    "month":       "MM",
+    "source":      "Interview|Podcast|YouTube|Social media",
+    "domain":      "example.com",
+    "author":      "Interviewer or poster name (if known)",
+    "sourceUrl":   "https://…"
+  },
+  …
+]
+
+**IMPORTANT:**
+- Do not include any text before or after the JSON.
+- If any record fails URL or domain validation, omit it.
+- If you find no valid recommendations, return \`[]\`.
+`;
+
+// Additional prompt suffix for fallback model
+const RECOMMENDATION_FALLBACK_SUFFIX =
+  "\n\nCRITICALLY IMPORTANT: " +
+  "1) You MUST focus EXCLUSIVELY on recommendations. " +
+  "2) Your response MUST be ONLY valid JSON - no text before or after. " +
+  "Do not add explanations or notes outside the JSON structure.";
+
+// Helper functions for JSON extraction with improved patterns
+const JSON_PATTERNS = [
+  /```(?:json)?\s*(\[\s*\{[\s\S]*?\}\s*\])\s*```/m,
+  /```(?:json)?\s*(\{[\s\S]*?\})\s*```/m,
+  /\[\s*\{[\s\S]*?\}\s*\]/m,
+  /\{[\s\S]*?"name"[\s\S]*?\}/m
+];
+
+const FALLBACK_PATTERNS = [
+  /\[\s*(?:\{[\s\S]*?\}\s*,?\s*)+\]/m,
+  /\[\s*[\s\S]*?\]/m
+];
+
+function sanitizeJson(jsonStr) {
+  if (!jsonStr) return jsonStr;
+  let cleaned = jsonStr.replace(/'/g, '"');
+  cleaned = cleaned.replace(/,\s*]/g, "]").replace(/,\s*}/g, "}");
+  // Fix the regex to avoid unnecessary escapes
+  cleaned = cleaned.replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+  cleaned = cleaned.replace(/:\s*True\b/g, ': true').replace(/:\s*False\b/g, ': false');
+  cleaned = cleaned.replace(/:\s*null\b/g, ': "null"');
+  return cleaned;
+}
+
+function extractJsonFromText(content) {
+  if (!content) {
+    logger.log('Content is empty or null, cannot extract JSON');
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(content);
+    if (Array.isArray(parsed)) return content;
+    if (typeof parsed === 'object') return JSON.stringify([parsed]);
+  } catch (e) {
+    logger.log('Not parseable as JSON directly, attempting extraction…');
+  }
+
+  const tryParse = (patterns) => {
+    for (const pattern of patterns) {
+      const m = content.match(pattern);
+      if (m) {
+        const candidate = m[1] || m[0];
+        try {
+          const sanitized = sanitizeJson(candidate);
+          const parsed = JSON.parse(sanitized);
+          if (Array.isArray(parsed)) return sanitized;
+          if (typeof parsed === 'object') return JSON.stringify([parsed]);
+        } catch (err) {
+          // Continue to next pattern
+        }
+      }
+    }
+    return null;
+  };
+
+  return tryParse(JSON_PATTERNS) || tryParse(FALLBACK_PATTERNS) || null;
+}
+
+function isValidRecommendation(rec) {
+  if (!rec || typeof rec !== 'object') return false;
+  const req = ['name','type','quote'];
+  if (req.some(f => !rec[f] || typeof rec[f] !== 'string')) return false;
+  const types = ['artist','album','song'];
+  if (!types.includes(rec.type.toLowerCase())) return false;
+  return true;
+}
+
+function validateRecommendations(recs) {
+  if (!Array.isArray(recs)) return [];
+  return recs
+    .filter(isValidRecommendation)
+    .map(r => ({
+      name:      r.name,
+      type:      r.type.toLowerCase(),
+      quote:     r.quote,
+      year:      r.year || '',
+      month:     r.month || '',
+      source:    r.source || 'Unknown',
+      sourceUrl: r.sourceUrl || ''
+    }));
+}
+
+export {
+  RECOMMENDATION_SYSTEM_PROMPT,
+  RECOMMENDATION_FALLBACK_SYSTEM_PROMPT,
+  RECOMMENDATION_USER_PROMPT_TEMPLATE,
+  RECOMMENDATION_FALLBACK_SUFFIX,
+  JSON_PATTERNS,
+  FALLBACK_PATTERNS,
+  sanitizeJson,
+  extractJsonFromText,
+  isValidRecommendation,
+  validateRecommendations
+};
+
+================
+File: lib/recommendations-cache.js
+================
+'use client';
+
+import { supabase } from './supabase';
+import logger from './logger';
+import { generateRecommendations } from './openai-service';
+
+// In-memory cache to reduce database calls
+const memoryCache = new Map();
+
+/**
+ * Get recommendations for an artist, with caching
+ * @param {string} artistName - The name of the artist
+ * @param {string} artistId - The Spotify ID of the artist
+ * @param {boolean} forceRefresh - Whether to force refresh from API (logged-in users only)
+ * @returns {Promise<Array>} - Array of recommendations
+ */
+export async function getRecommendations(artistName, artistId, forceRefresh = false) {
+  if (!artistName || !artistId) {
+    logger.error('[Cache] Artist name and ID are required');
+    throw new Error('Artist name and ID are required');
+  }
+
+  // Check memory cache first
+  const cacheKey = `recommendations_${artistId}`;
+  if (!forceRefresh && memoryCache.has(cacheKey)) {
+    logger.log(`[Cache] Using in-memory cache for artist ${artistId}`);
+    return memoryCache.get(cacheKey);
+  }
+
+  try {
+    // Try to get from database cache
+    const cachedRecommendations = await getCachedRecommendations(artistId);
+    
+    if (cachedRecommendations && !forceRefresh) {
+      // Update memory cache
+      memoryCache.set(cacheKey, cachedRecommendations);
+      logger.log(`[Cache] Using database cache for artist ${artistId}`);
+      return cachedRecommendations;
+    }
+
+    // If user is not logged in, we can't generate new recommendations
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      logger.log(`[Cache] User not logged in, cannot generate recommendations for ${artistId}`);
+      return null;
+    }
+
+    // If forceRefresh, check if user has reached search limit
+    if (forceRefresh) {
+      const userHasReachedLimit = await hasReachedSearchLimit(user.id);
+      if (userHasReachedLimit) {
+        logger.warn(`[Cache] User ${user.id} has reached search limit`);
+        throw new Error('Search limit reached');
+      }
+    }
+
+    // Generate new recommendations using OpenAI
+    logger.log(`[Cache] Generating new recommendations for artist ${artistId}`);
+    const recommendations = await generateRecommendations(artistName, artistId);
+    
+    // Cache the recommendations
+    await cacheRecommendations(artistId, artistName, recommendations, user.id);
+    
+    // Update memory cache
+    memoryCache.set(cacheKey, recommendations);
+    
+    // Increment user's search count
+    await incrementSearchCount(user.id);
+    
+    return recommendations;
+  } catch (error) {
+    logger.error(`[Cache] Error in getRecommendations:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get cached recommendations from Supabase
+ * @param {string} artistId - The Spotify ID of the artist
+ * @returns {Promise<Array|null>} - Array of recommendations or null if not found
+ */
+async function getCachedRecommendations(artistId) {
+  try {
+    const { data, error } = await supabase
+      .from('artist_recommendations_cache')
+      .select('recommendations')
+      .eq('artist_spotify_id', artistId)
+      .single();
+      
+    if (error || !data) {
+      return null;
+    }
+    
+    return data.recommendations;
+  } catch (error) {
+    logger.error('[Cache] Error in getCachedRecommendations:', error);
+    return null;
+  }
+}
+
+/**
+ * Cache recommendations in Supabase
+ * @param {string} artistId - The Spotify ID of the artist
+ * @param {string} artistName - The name of the artist
+ * @param {Array} recommendations - The recommendations to cache
+ * @param {string} userId - The ID of the user who generated the recommendations
+ * @returns {Promise<boolean>} - Whether the caching was successful
+ */
+async function cacheRecommendations(artistId, artistName, recommendations, userId = null) {
+  try {
+    // Check if the artist already exists in the cache
+    const { data: existingData } = await supabase
+      .from('artist_recommendations_cache')
+      .select('id')
+      .eq('artist_spotify_id', artistId)
+      .single();
+      
+    if (existingData) {
+      // Update existing cache entry
+      const { error: updateError } = await supabase
+        .from('artist_recommendations_cache')
+        .update({ 
+          recommendations: recommendations,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingData.id);
+        
+      if (updateError) {
+        logger.error('[Cache] Error updating cached recommendations:', updateError);
+        return false;
+      }
+      
+      logger.log(`[Cache] Updated recommendations cache for artist ${artistId}`);
+      return true;
+    }
+    
+    // Create new cache entry
+    const { error: insertError } = await supabase
+      .from('artist_recommendations_cache')
+      .insert([{
+        artist_name: artistName,
+        artist_spotify_id: artistId,
+        recommendations: recommendations,
+        created_by: userId
+      }]);
+      
+    if (insertError) {
+      logger.error('[Cache] Error creating recommendations cache:', insertError);
+      return false;
+    }
+    
+    logger.log(`[Cache] Created new recommendations cache for artist ${artistId}`);
+    return true;
+  } catch (error) {
+    logger.error('[Cache] Error in cacheRecommendations:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if a user has reached their search limit
+ * @param {string} userId - The ID of the user
+ * @returns {Promise<boolean>} - Whether the user has reached their search limit
+ */
+async function hasReachedSearchLimit(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('search_count')
+      .eq('id', userId)
+      .single();
+      
+    if (error || !data) {
+      logger.error('[Cache] Error checking search limit:', error);
+      return true; // Assume limit reached on error
+    }
+    
+    const SEARCH_LIMIT = 3; // Maximum number of searches allowed
+    return data.search_count >= SEARCH_LIMIT;
+  } catch (error) {
+    logger.error('[Cache] Error in hasReachedSearchLimit:', error);
+    return true; // Assume limit reached on error
+  }
+}
+
+/**
+ * Increment a user's search count
+ * @param {string} userId - The ID of the user
+ * @returns {Promise<boolean>} - Whether the increment was successful
+ */
+async function incrementSearchCount(userId) {
+  try {
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ search_count: supabase.raw('search_count + 1') })
+      .eq('id', userId);
+      
+    if (error) {
+      logger.error('[Cache] Error incrementing search count:', error);
+      return false;
+    }
+    
+    logger.log(`[Cache] Incremented search count for user ${userId}`);
+    return true;
+  } catch (error) {
+    logger.error('[Cache] Error in incrementSearchCount:', error);
+    return false;
+  }
+}
+
+================
+File: lib/spotify.js
+================
+import SpotifyWebApi from 'spotify-web-api-js';
+import logger from './logger';
+
+// Spotify API client for browser usage (needs user token)
+export const spotifyClient = new SpotifyWebApi();
+
+// Set the access token for the client
+export const setAccessToken = (token) => {
+  spotifyClient.setAccessToken(token);
+};
+
+// For server-side Spotify API requests (client credentials flow)
+export async function getServerAccessToken() {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing Spotify credentials');
+  }
+
+  const params = new URLSearchParams();
+  params.append('grant_type', 'client_credentials');
+
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+    },
+    body: params
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(`Failed to get Spotify access token: ${data.error}`);
+  }
+
+  return data.access_token;
+}
+
+// Server-side search for artists
+export async function searchArtist(query, limit = 5) {
+  try {
+    const token = await getServerAccessToken();
+    
+    const response = await fetch(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=${limit}`,
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`Spotify search error: ${data.error?.message || 'Unknown error'}`);
+    }
+    
+    return data.artists.items.map(artist => ({
+      id: artist.id,
+      name: artist.name,
+      image: artist.images.length > 0 ? artist.images[0].url : null,
+      popularity: artist.popularity,
+      uri: artist.uri
+    }));
+  } catch (error) {
+    logger.error('Error searching artists:', error);
+    throw error;
+  }
+}
+
+// Get full artist details by ID
+export async function getArtistDetails(artistId) {
+  try {
+    const token = await getServerAccessToken();
+    
+    // Get artist details
+    const artistResponse = await fetch(
+      `https://api.spotify.com/v1/artists/${artistId}`,
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+    
+    const artistData = await artistResponse.json();
+    
+    if (!artistResponse.ok) {
+      throw new Error(`Error fetching artist: ${artistData.error?.message || 'Unknown error'}`);
+    }
+    
+    // Get top tracks
+    const tracksResponse = await fetch(
+      `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`,
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+    
+    const tracksData = await tracksResponse.json();
+    
+    // Get related artists
+    const relatedResponse = await fetch(
+      `https://api.spotify.com/v1/artists/${artistId}/related-artists`,
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+    
+    const relatedData = await relatedResponse.json();
+    
+    return {
+      id: artistData.id,
+      name: artistData.name,
+      image: artistData.images.length > 0 ? artistData.images[0].url : null,
+      genres: artistData.genres,
+      popularity: artistData.popularity,
+      followers: artistData.followers.total,
+      spotifyUrl: artistData.external_urls.spotify,
+      topTracks: tracksData.tracks?.slice(0, 5).map(track => ({
+        id: track.id,
+        name: track.name,
+        previewUrl: track.preview_url,
+        albumImage: track.album.images.length > 0 ? track.album.images[0].url : null
+      })) || [],
+      relatedArtists: relatedData.artists?.slice(0, 5).map(artist => ({
+        id: artist.id,
+        name: artist.name,
+        image: artist.images.length > 0 ? artist.images[0].url : null
+      })) || []
+    };
+  } catch (error) {
+    logger.error('Error getting artist details:', error);
+    throw error;
+  }
+}
+
+// Generate a URL for Spotify authentication
+export function getSpotifyAuthUrl() {
+  const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
+  const redirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI || 'http://localhost:3000/api/auth/callback/spotify';
+  const scopes = ['user-read-private', 'user-read-email'];
+  
+  return 'https://accounts.spotify.com/authorize' +
+    '?response_type=code' +
+    `&client_id=${encodeURIComponent(clientId)}` +
+    `&scope=${encodeURIComponent(scopes.join(' '))}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    '&show_dialog=true';
+}
+
+================
+File: lib/supabase.js
+================
+import { createClient } from '@supabase/supabase-js';
+import logger from './logger';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  logger.error('Missing Supabase environment variables');
+}
+
+// Create a Supabase client for browser usage (auth)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Create a service client for server operations with admin privileges
+// Only use this on the server side
+export const supabaseAdmin = () => {
+  if (!supabaseServiceKey) {
+    logger.error('Missing Supabase service key');
+    return null;
+  }
+  return createClient(supabaseUrl, supabaseServiceKey);
+};
+
+// Auth helpers
+export async function signUp(email, password) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+  
+  return { data, error };
+}
+
+export async function signIn(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email, 
+    password,
+  });
+  
+  return { data, error };
+}
+
+export async function signOut() {
+  const { error } = await supabase.auth.signOut();
+  return { error };
+}
+
+export async function getCurrentUser() {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error || !session) return { user: null, error };
+  
+  return { user: session.user, error: null };
+}
+
+// User profile helpers
+export async function createUserProfile(userId) {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .insert([{ id: userId, search_count: 0 }]);
+
+  return { data, error };
+}
+
+export async function getUserProfile(userId) {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  return { data, error };
+}
+
+export async function incrementSearchCount(userId) {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .update({ search_count: supabase.raw('search_count + 1') })
+    .eq('id', userId)
+    .select();
+
+  return { data, error };
+}
+
+// App settings helpers
+export async function getAppSettings() {
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  return { data, error };
+}
+
+// Artist recommendations helpers
+export async function getCachedArtistRecommendations(artistName) {
+  const { data, error } = await supabase
+    .from('artist_recommendations_cache')
+    .select('*')
+    .ilike('artist_name', artistName)
+    .single();
+
+  return { data, error };
+}
+
+export async function cacheArtistRecommendations(artistName, artistSpotifyId, artistData, recommendations, userId = null) {
+  const { data, error } = await supabase
+    .from('artist_recommendations_cache')
+    .insert([{
+      artist_name: artistName,
+      artist_spotify_id: artistSpotifyId,
+      artist_data: artistData,
+      recommendations: recommendations,
+      created_by: userId
+    }]);
+
+  return { data, error };
+}
+
+export async function getFeaturedArtists() {
+  const { data, error } = await supabase
+    .from('artist_recommendations_cache')
+    .select('*')
+    .eq('is_featured', true)
+    .order('created_at', { ascending: false });
+
+  return { data, error };
+}
+
+export async function markArtistAsFeatured(artistId, featured = true) {
+  const { data, error } = await supabase
+    .from('artist_recommendations_cache')
+    .update({ is_featured: featured })
+    .eq('id', artistId)
+    .select();
+
+  return { data, error };
+}
+
+================
+File: lib/utils.js
+================
+/**
+ * Converts artist name to a URL-friendly slug
+ * @param {string} name - Artist name
+ * @returns {string} - URL-friendly slug
+ */
+export function slugify(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/--+/g, '-') // Replace multiple hyphens with single hyphen
+    .trim();
+}
+
+/**
+ * Converts a slug back to a readable name
+ * @param {string} slug - URL-friendly slug
+ * @returns {string} - Readable name
+ */
+export function deslugify(slug) {
+  return slug
+    .replace(/-/g, ' ') // Replace hyphens with spaces
+    .replace(/\b\w/g, c => c.toUpperCase()); // Capitalize first letter of each word
+}
+
+/**
+ * Formats large numbers for display
+ * @param {number} num - Number to format
+ * @returns {string} - Formatted number (e.g., "1.2M")
+ */
+export function formatNumber(num) {
+  if (!num) return '0';
+  
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  }
+  
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  
+  return num.toString();
+}
+
+/**
+ * Truncates text to a specified length
+ * @param {string} text - Text to truncate
+ * @param {number} length - Maximum length
+ * @returns {string} - Truncated text
+ */
+export function truncateText(text, length = 100) {
+  if (!text || text.length <= length) return text;
+  
+  return text.substring(0, length - 3) + '...';
+}
+
+/**
+ * Gets a placeholder image URL for artists without images
+ * @returns {string} - Placeholder image URL
+ */
+export function getPlaceholderImage() {
+  return '/placeholder-artist.jpg';
+}
+
+/**
+ * Validates an email address
+ * @param {string} email - Email to validate
+ * @returns {boolean} - Whether email is valid
+ */
+export function isValidEmail(email) {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+}
+
+/**
+ * Validates a password for strength
+ * @param {string} password - Password to validate
+ * @returns {boolean} - Whether password is strong enough
+ */
+export function isValidPassword(password) {
+  return password && password.length >= 8;
+}
+
+/**
+ * Generates a random string for IDs
+ * @param {number} length - Length of ID
+ * @returns {string} - Random ID string
+ */
+export function generateId(length = 8) {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  return result;
+}
+
+================
+File: pages/admin/manage-featured.js
+================
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Layout from '../../components/Layout';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import { useAuth } from '../../hooks/useAuth';
+import { getFeaturedArtists, markArtistAsFeatured } from '../../lib/supabase';
+import { searchArtist } from '../../lib/spotify';
+import logger from '../../lib/logger';
+
+export default function ManageFeatured() {
+  const { user, isAdmin } = useAuth();
+  const router = useRouter();
+  
+  const [featuredArtists, setFeaturedArtists] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState(null);
+  const [actionMessage, setActionMessage] = useState(null);
+
+  // Check if user is admin
+  useEffect(() => {
+    if (user && !isAdmin) {
+      router.push('/');
+    }
+  }, [user, isAdmin, router]);
+
+  // Fetch featured artists
+  useEffect(() => {
+    const fetchFeaturedArtists = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const { data, error: fetchError } = await getFeaturedArtists();
+        
+        if (fetchError) throw fetchError;
+        
+        setFeaturedArtists(data || []);
+      } catch (err) {
+        logger.error('Error fetching featured artists:', err);
+        setError('Failed to load featured artists');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user && isAdmin) {
+      fetchFeaturedArtists();
+    }
+  }, [user, isAdmin]);
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // Handle search submit
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    
+    if (!searchQuery.trim()) return;
+    
+    try {
+      setIsSearching(true);
+      setError(null);
+      
+      const results = await searchArtist(searchQuery);
+      setSearchResults(results);
+    } catch (err) {
+      logger.error('Error searching artists:', err);
+      setError('Failed to search artists');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle featuring/unfeaturing an artist
+  const handleFeatureToggle = async (artist, isFeatured) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      setActionMessage(null);
+      
+      const { error: toggleError } = await markArtistAsFeatured(artist.id, !isFeatured);
+      
+      if (toggleError) throw toggleError;
+      
+      // Refresh the list
+      const { data, error: fetchError } = await getFeaturedArtists();
+      
+      if (fetchError) throw fetchError;
+      
+      setFeaturedArtists(data || []);
+      setActionMessage(`Artist ${!isFeatured ? 'featured' : 'unfeatured'} successfully`);
+    } catch (err) {
+      logger.error('Error toggling featured status:', err);
+      setError(`Failed to ${!isFeatured ? 'feature' : 'unfeature'} artist`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show access denied if not admin
+  if (user && !isAdmin) {
+    return (
+      <Layout title="Access Denied | Rec'd">
+        <div className="admin-page">
+          <h1>Access Denied</h1>
+          <p>You don't have permission to access this page.</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show loading while checking admin status
+  if (!user) {
+    return (
+      <Layout title="Admin | Rec'd">
+        <div className="admin-page">
+          <LoadingSpinner message="Checking permissions..." />
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout title="Manage Featured Artists | Rec'd">
+      <div className="admin-page">
+        <h1 className="admin-title">Manage Featured Artists</h1>
+        
+        {actionMessage && (
+          <div className="action-message success">
+            {actionMessage}
+          </div>
+        )}
+        
+        {error && (
+          <div className="action-message error">
+            {error}
+          </div>
+        )}
+        
+        <div className="admin-search">
+          <h2>Add Featured Artist</h2>
+          <form onSubmit={handleSearch} className="admin-search-form">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search for artists..."
+              className="admin-search-input"
+              disabled={isSearching}
+            />
+            <button 
+              type="submit" 
+              className="admin-search-button"
+              disabled={isSearching || !searchQuery.trim()}
+            >
+              {isSearching ? 'Searching...' : 'Search'}
+            </button>
+          </form>
+          
+          {searchResults.length > 0 && (
+            <div className="admin-search-results">
+              <h3>Search Results</h3>
+              <ul className="admin-result-list">
+                {searchResults.map((artist) => (
+                  <li key={artist.id} className="admin-result-item">
+                    {artist.image && (
+                      <img
+                        src={artist.image}
+                        alt={artist.name}
+                        className="admin-result-image"
+                        width={50}
+                        height={50}
+                      />
+                    )}
+                    <span className="admin-result-name">{artist.name}</span>
+                    <button
+                      onClick={() => {
+                        // Create a cache search for this artist first
+                        // This just opens the artist page which will create the cache
+                        window.open(`/${artist.name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')}`, '_blank');
+                      }}
+                      className="admin-create-cache"
+                    >
+                      Create Cache
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        
+        <div className="admin-featured-list">
+          <h2>Current Featured Artists</h2>
+          
+          {isLoading ? (
+            <LoadingSpinner message="Loading featured artists..." />
+          ) : featuredArtists.length === 0 ? (
+            <p className="no-featured">No featured artists yet.</p>
+          ) : (
+            <ul className="admin-artist-list">
+              {featuredArtists.map((artist) => (
+                <li key={artist.id} className="admin-artist-item">
+                  <div className="admin-artist-info">
+                    {artist.artist_data && artist.artist_data.image && (
+                      <img
+                        src={artist.artist_data.image}
+                        alt={artist.artist_name}
+                        className="admin-artist-image"
+                        width={50}
+                        height={50}
+                      />
+                    )}
+                    <span className="admin-artist-name">{artist.artist_name}</span>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleFeatureToggle(artist, true)}
+                    className="admin-unfeature-button"
+                    disabled={isLoading}
+                  >
+                    Remove from Featured
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+================
+File: pages/api/auth/callback/spotify.js
+================
+import logger from '../../../../lib/logger';
+
+export default async function handler(req, res) {
+  const { code } = req.query;
+
+  if (!code) {
+    return res.status(400).json({ error: 'Missing authorization code' });
+  }
+
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(
+          `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+        ).toString('base64')}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: process.env.NEXT_PUBLIC_REDIRECT_URI || 'http://localhost:3000/api/auth/callback/spotify'
+      }).toString()
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error_description || 'Failed to exchange token');
+    }
+
+    // Redirect back to the client side with the access token
+    res.redirect(`/?token=${data.access_token}&expires_in=${data.expires_in}`);
+  } catch (error) {
+    logger.error('Spotify token exchange error:', error);
+    res.redirect(`/?error=${encodeURIComponent(error.message)}`);
+  }
+}
+
+================
+File: pages/api/auth/check-limit.js
+================
+import { supabase } from '../../../lib/supabase';
+import logger from '../../../lib/logger';
+
+export default async function handler(req, res) {
+  // Only allow GET requests
+  if (req.method !== 'GET') {
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+
+  // Get authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
+  try {
+    // Verify token and get user
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      logger.error('[API] Auth error:', authError);
+      return res.status(401).json({ success: false, error: 'Invalid token' });
+    }
+    
+    // Get user's profile with search count
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('search_count, is_admin')
+      .eq('id', user.id)
+      .single();
+      
+    if (profileError) {
+      logger.error('[API] Error fetching user profile:', profileError);
+      
+      // If profile doesn't exist, create it
+      if (profileError.code === 'PGRST116') {
+        const { error: createError } = await supabase
+          .from('user_profiles')
+          .insert([{ id: user.id, search_count: 0 }]);
+          
+        if (createError) {
+          logger.error('[API] Error creating user profile:', createError);
+          return res.status(500).json({ success: false, error: 'Failed to create user profile' });
+        }
+        
+        // New profile created with 0 searches
+        return res.status(200).json({
+          success: true,
+          hasReachedLimit: false,
+          searchCount: 0,
+          isAdmin: false,
+          maxSearches: 3
+        });
+      }
+      
+      return res.status(500).json({ success: false, error: 'Failed to fetch user profile' });
+    }
+    
+    // If user is admin, they don't have a search limit
+    if (profile.is_admin) {
+      return res.status(200).json({
+        success: true,
+        hasReachedLimit: false,
+        searchCount: profile.search_count,
+        isAdmin: true,
+        maxSearches: Infinity
+      });
+    }
+    
+    // Check if user has reached search limit
+    const MAX_SEARCHES = 3; // Maximum number of searches allowed
+    const hasReachedLimit = profile.search_count >= MAX_SEARCHES;
+    
+    return res.status(200).json({
+      success: true,
+      hasReachedLimit,
+      searchCount: profile.search_count,
+      isAdmin: false,
+      maxSearches: MAX_SEARCHES
+    });
+  } catch (error) {
+    logger.error('[API] Error checking search limit:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+================
+File: pages/api/recommendations/[artistName]/status.js
+================
+import { getCachedArtistRecommendations } from '../../../../lib/supabase';
+import logger from '../../../../lib/logger';
+
+/**
+ * API endpoint to check if recommendations exist for an artist
+ * This endpoint is used to check cache status without fetching full data
+ */
+export default async function handler(req, res) {
+  // Only allow HEAD and GET requests
+  if (req.method !== 'HEAD' && req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { artistName } = req.query;
+  
+  if (!artistName) {
+    return res.status(400).json({ error: 'Artist name is required' });
+  }
+  
+  try {
+    // Check if we have cached recommendations for this artist
+    const { data, error } = await getCachedArtistRecommendations(artistName);
+    
+    if (error || !data) {
+      // No cached data found
+      return res.status(404).json({ 
+        cached: false, 
+        message: 'No cached recommendations found for this artist' 
+      });
+    }
+    
+    // If this is a HEAD request, return just the status code
+    if (req.method === 'HEAD') {
+      return res.status(200).end();
+    }
+    
+    // For GET requests, return cache information
+    return res.status(200).json({ 
+      cached: true,
+      artistId: data.artist_spotify_id,
+      recommendationCount: data.recommendations?.length || 0,
+      lastUpdated: data.updated_at || data.created_at
+    });
+  } catch (error) {
+    logger.error('Error checking recommendation cache status:', error);
+    return res.status(500).json({ error: 'Failed to check recommendation cache status' });
+  }
+}
+
+================
+File: pages/api/recommendations/[artistName].js
+================
+import { searchArtist } from '../../../lib/spotify';
+import logger from '../../../lib/logger';
+import { getArtistRecommendationsWithCache } from '../../../lib/cache-manager';
+import { getCachedArtistRecommendations, incrementSearchCount, getUserProfile } from '../../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
+
+export default async function handler(req, res) {
+  const { artistName } = req.query;
+  const forceRefresh = req.query.refresh === 'true';
+  
+  if (!artistName) {
+    return res.status(400).json({ error: 'Artist name is required' });
+  }
+  
+  try {
+    // First check if we have cached data
+    const { data: cachedData, error: cacheError } = await getCachedArtistRecommendations(artistName);
+    
+    // If we have cached data and don't need a refresh, return it immediately
+    if (!cacheError && cachedData && !forceRefresh) {
+      return res.status(200).json(cachedData);
+    }
+    
+    // If we need a refresh or don't have cached data, check user authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // If no session and no cached data, return 404
+    if (!session && (!cachedData || forceRefresh)) {
+      return res.status(404).json({ 
+        error: 'Artist not found in cache and user is not authenticated' 
+      });
+    }
+    
+    // If authenticated user wants a refresh or there's no cached data
+    if (session && (forceRefresh || !cachedData)) {
+      const userId = session.user.id;
+      
+      // Check if user has reached their search limit
+      const { data: profile, error: profileError } = await getUserProfile(userId);
+      
+      if (profileError) {
+        return res.status(500).json({ error: 'Failed to fetch user profile' });
+      }
+      
+      if (profile.search_count >= 3) {
+        return res.status(403).json({ error: 'Search limit reached' });
+      }
+      
+      // Search for the artist first to get their Spotify ID
+      const searchResults = await searchArtist(artistName);
+      
+      if (!searchResults || searchResults.length === 0) {
+        return res.status(404).json({ error: 'Artist not found' });
+      }
+      
+      // Use the first result (most relevant)
+      const artist = searchResults[0];
+      
+      // Get and cache recommendations
+      const recommendationsData = await getArtistRecommendationsWithCache(
+        artist.name,
+        artist.id,
+        true, // force refresh
+        userId
+      );
+      
+      // Increment user's search count
+      await incrementSearchCount(userId);
+      
+      return res.status(200).json(recommendationsData);
+    }
+    
+    // If we have cached data and user is not authenticated or doesn't want a refresh
+    if (cachedData) {
+      return res.status(200).json(cachedData);
+    }
+    
+    // Should not reach here, but just in case
+    return res.status(404).json({ error: 'Artist recommendations not found' });
+  } catch (error) {
+    logger.error('Error in recommendations API:', error);
+    return res.status(500).json({ error: 'Failed to fetch recommendations' });
+  }
+}
+
+================
+File: pages/api/search-suggestions.js
+================
+import { searchArtist } from '../../lib/spotify';
+import logger from '../../lib/logger';
+
+export default async function handler(req, res) {
+  const { query } = req.query;
+  
+  if (!query || typeof query !== 'string') {
+    return res.status(400).json({ error: 'Query parameter is required' });
+  }
+  
+  try {
+    const results = await searchArtist(query);
+    return res.status(200).json(results);
+  } catch (error) {
+    logger.error('Error in search-suggestions API:', error);
+    return res.status(500).json({ error: 'Failed to fetch search results' });
+  }
+}
+
+================
+File: pages/auth/login.js
+================
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import Layout from '../../components/Layout';
+import { useAuth } from '../../hooks/useAuth';
+import { isValidEmail } from '../../lib/utils';
+import logger from '../../lib/logger';
+
+export default function Login() {
+  const { login } = useAuth();
+  const router = useRouter();
+  const { redirect, registered } = router.query;
+  const [loginError, setLoginError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { register, handleSubmit, formState: { errors } } = useForm();
+
+  const onSubmit = async (data) => {
+    try {
+      setIsLoading(true);
+      setLoginError(null);
+      
+      const { success, error } = await login(data.email, data.password);
+      
+      if (!success) {
+        setLoginError(error || 'Invalid email or password');
+        return;
+      }
+      
+      // Redirect to the previous page or home
+      router.push(redirect || '/');
+    } catch (error) {
+      logger.error('Login error:', error);
+      setLoginError('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Layout title="Log In | Rec'd">
+      <div className="auth-page">
+        <div className="auth-container">
+          <h1 className="auth-title">Log In</h1>
+          
+          {registered && (
+            <div className="auth-success">
+              <p>Account created successfully! Please check your email to confirm your account before logging in.</p>
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">Email</label>
+              <input
+                id="email"
+                type="email"
+                className={`form-input ${errors.email ? 'error' : ''}`}
+                placeholder="Enter your email"
+                disabled={isLoading}
+                {...register('email', { 
+                  required: 'Email is required',
+                  validate: value => isValidEmail(value) || 'Please enter a valid email'
+                })}
+              />
+              {errors.email && (
+                <p className="form-error">{errors.email.message}</p>
+              )}
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="password" className="form-label">Password</label>
+              <input
+                id="password"
+                type="password"
+                className={`form-input ${errors.password ? 'error' : ''}`}
+                placeholder="Enter your password"
+                disabled={isLoading}
+                {...register('password', { 
+                  required: 'Password is required'
+                })}
+              />
+              {errors.password && (
+                <p className="form-error">{errors.password.message}</p>
+              )}
+            </div>
+            
+            {loginError && (
+              <div className="auth-error">
+                {loginError}
+              </div>
+            )}
+            
+            <button 
+              type="submit" 
+              className="auth-button"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Logging In...' : 'Log In'}
+            </button>
+            
+            <div className="auth-alternative">
+              <p>
+                Don't have an account?{' '}
+                <Link href={`/auth/signup${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}>
+                  Sign Up
+                </Link>
+              </p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+================
+File: pages/auth/signup.js
+================
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import Layout from '../../components/Layout';
+import logger from '../../lib/logger';
+import { useAuth } from '../../hooks/useAuth';
+import useUserLimits from '../../hooks/useUserLimits';
+import { isValidEmail, isValidPassword } from '../../lib/utils';
+
+export default function Signup() {
+  const { register: registerUser } = useAuth();
+  const { canRegister, loading: limitsLoading } = useUserLimits();
+  const router = useRouter();
+  const { redirect } = router.query;
+  const [signupError, setSignupError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const password = watch('password', '');
+
+  const onSubmit = async (data) => {
+    try {
+      setIsLoading(true);
+      setSignupError(null);
+      
+      // Check if registration is open
+      if (!canRegister) {
+        setSignupError('Registration is currently closed');
+        return;
+      }
+      
+      const { success, error } = await registerUser(data.email, data.password);
+      
+      if (!success) {
+        setSignupError(error || 'Failed to create account');
+        return;
+      }
+      
+      // Redirect to login page with success message
+      router.push(`/auth/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}${redirect ? '&' : '?'}registered=true`);
+    } catch (error) {
+      logger.error('Signup error:', error);
+      setSignupError('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show loading while checking limits
+  if (limitsLoading) {
+    return (
+      <Layout title="Sign Up | Rec'd">
+        <div className="auth-page">
+          <div className="auth-container">
+            <h1 className="auth-title">Sign Up</h1>
+            <p className="loading-message">Loading...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show closed registration message
+  if (!canRegister) {
+    return (
+      <Layout title="Registration Closed | Rec'd">
+        <div className="auth-page">
+          <div className="auth-container">
+            <h1 className="auth-title">Registration Closed</h1>
+            <p className="closed-message">
+              We've reached our user limit. Check back later or contact the administrator.
+            </p>
+            <Link href="/auth/login" className="auth-redirect-link">
+              Already have an account? Log In
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout title="Sign Up | Rec'd">
+      <div className="auth-page">
+        <div className="auth-container">
+          <h1 className="auth-title">Create an Account</h1>
+          
+          <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">Email</label>
+              <input
+                id="email"
+                type="email"
+                className={`form-input ${errors.email ? 'error' : ''}`}
+                placeholder="Enter your email"
+                disabled={isLoading}
+                {...register('email', { 
+                  required: 'Email is required',
+                  validate: value => isValidEmail(value) || 'Please enter a valid email'
+                })}
+              />
+              {errors.email && (
+                <p className="form-error">{errors.email.message}</p>
+              )}
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="password" className="form-label">Password</label>
+              <input
+                id="password"
+                type="password"
+                className={`form-input ${errors.password ? 'error' : ''}`}
+                placeholder="Enter your password"
+                disabled={isLoading}
+                {...register('password', { 
+                  required: 'Password is required',
+                  validate: value => 
+                    isValidPassword(value) || 
+                    'Password must be at least 8 characters'
+                })}
+              />
+              {errors.password && (
+                <p className="form-error">{errors.password.message}</p>
+              )}
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
+                placeholder="Confirm your password"
+                disabled={isLoading}
+                {...register('confirmPassword', { 
+                  required: 'Please confirm your password',
+                  validate: value => 
+                    value === password || 'Passwords do not match'
+                })}
+              />
+              {errors.confirmPassword && (
+                <p className="form-error">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+            
+            {signupError && (
+              <div className="auth-error">
+                {signupError}
+              </div>
+            )}
+            
+            <button 
+              type="submit" 
+              className="auth-button"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Creating Account...' : 'Sign Up'}
+            </button>
+            
+            <div className="auth-note">
+              <p>
+                By signing up, you'll get 3 artist searches to generate personalized 
+                recommendations.
+              </p>
+              <p className="email-confirmation-note">
+                Please check your email to confirm your account after signing up.
+              </p>
+            </div>
+            
+            <div className="auth-alternative">
+              <p>
+                Already have an account?{' '}
+                <Link href={`/auth/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}>
+                  Log In
+                </Link>
+              </p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+================
+File: pages/_app.js
+================
+import '../styles/globals.css';
+import '../styles/artist-page.css';
+import '../styles/recommendations.css';
+import '../styles/error-fallbacks.css';
+import '../styles/auth.css';
+import { AuthProvider } from '../hooks/useAuth';
+import Head from 'next/head';
+import ErrorBoundary from '../components/ErrorBoundary';
+
+function MyApp({ Component, pageProps }) {
+  return (
+    <AuthProvider>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+      <ErrorBoundary>
+        <Component {...pageProps} />
+      </ErrorBoundary>
+    </AuthProvider>
+  );
+}
+
+export default MyApp;
+
+================
+File: pages/_document.js
+================
+import { Html, Head, Main, NextScript } from 'next/document';
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head>
+        {/* Font stylesheets */}
+        <link rel="stylesheet" href="https://use.typekit.net/jtt4bay.css" />
+        
+        {/* Favicon - moved from Layout since it's static */}
+        <link rel="icon" href="/favicon.ico" />
+        
+      </Head>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  );
+}
+
+================
+File: pages/[artistSlug].js
+================
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
+import Layout from '../components/Layout';
+import RecommendationGrid from '../components/RecommendationGrid';
+import AuthPrompt from '../components/AuthPrompt';
+import SearchLimitReached from '../components/SearchLimitReached';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useAuth } from '../hooks/useAuth';
+import { deslugify } from '../lib/utils';
+import logger from '../lib/logger';
+
+export default function ArtistPage() {
+  const router = useRouter();
+  const { artistSlug } = router.query;
+  const { user, hasReachedSearchLimit } = useAuth();
+  
+  const [artistData, setArtistData] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+  
+  // Fetch artist data and recommendations
+  useEffect(() => {
+    if (!artistSlug) return;
+    
+    const fetchArtistData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        setNotFound(false);
+        
+        const artistName = deslugify(artistSlug);
+        const response = await fetch(`/api/recommendations/${encodeURIComponent(artistName)}`);
+        
+        if (response.status === 404) {
+          setNotFound(true);
+          return;
+        }
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch artist data');
+        }
+        
+        const data = await response.json();
+        
+        setArtistData(data.artist_data || null);
+        setRecommendations(data.recommendations || []);
+      } catch (err) {
+        logger.error('Error fetching artist data:', err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchArtistData();
+  }, [artistSlug]);
+
+  // Handle refresh/regenerate recommendations
+  const handleRegenerateRecommendations = async () => {
+    if (!artistSlug || !user || hasReachedSearchLimit) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const artistName = deslugify(artistSlug);
+      const response = await fetch(`/api/recommendations/${encodeURIComponent(artistName)}?refresh=true`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to regenerate recommendations');
+      }
+      
+      const data = await response.json();
+      
+      setArtistData(data.artist_data || null);
+      setRecommendations(data.recommendations || []);
+    } catch (err) {
+      logger.error('Error regenerating recommendations:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="artist-page-loading">
+          <LoadingSpinner size="large" message={`Loading artist data...`} />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show not found state
+  if (notFound) {
+    return (
+      <Layout>
+        <div className="artist-not-found">
+          <h1>Artist Not Found</h1>
+          <p>
+            This artist hasn't been searched before. {user ? 'Search for this artist to generate recommendations.' : 'Sign in to search for this artist and generate recommendations.'}
+          </p>
+          
+          {!user && <AuthPrompt message="Sign in to search for this artist" />}
+          {user && hasReachedSearchLimit && <SearchLimitReached />}
+          
+          {user && !hasReachedSearchLimit && (
+            <button 
+              onClick={handleRegenerateRecommendations}
+              className="generate-button"
+            >
+              Generate Recommendations
+            </button>
+          )}
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show error state
+  if (error || !artistData) {
+    return (
+      <Layout>
+        <div className="artist-error">
+          <h1>Something Went Wrong</h1>
+          <p>{error || 'Failed to load artist data'}</p>
+          <button onClick={() => router.push('/')} className="go-home-button">
+            Return to Home
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Artist page content - simplified version
+  const { name } = artistData;
+
+  return (
+    <Layout title={`${name} - Recommendations | Rec'd`}>
+      <Head>
+        <meta name="description" content={`Discover artists similar to ${name}. Get personalized music recommendations.`} />
+      </Head>
+
+      <div className="artist-page">
+        <div className="artist-header-simple">
+          <h1 className="artist-name">{name}</h1>
+          <h2 className="recommendations-subtitle">Recommendations</h2>
+        </div>
+        
+        {recommendations && recommendations.length > 0 ? (
+          <RecommendationGrid recommendations={recommendations} />
+        ) : (
+          <div className="no-recommendations">
+            <p>No recommendations available for this artist.</p>
+            
+            {user && !hasReachedSearchLimit && (
+              <button 
+                onClick={handleRegenerateRecommendations}
+                className="generate-button"
+              >
+                Generate Recommendations
+              </button>
+            )}
+            
+            {!user && <AuthPrompt />}
+            {user && hasReachedSearchLimit && <SearchLimitReached />}
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+}
+
+================
+File: pages/index.js
+================
+import { useState } from 'react';
+import Link from 'next/link';
+import Layout from '../components/Layout';
+import SearchBar from '../components/SearchBar';
+import LoadingSpinner from '../components/LoadingSpinner';
+import featuredArtists from '../data/featured-artists.json';
+import { slugify } from '../lib/utils';
+
+export default function Home() {
+  const [isLoading] = useState(false);
+
+  return (
+    <Layout>
+
+      <div className="hero-section">
+        <h1 className="hero-title">Find Your Next Favorite Artist</h1>
+        <p className="hero-subtitle">
+          Get intelligent music recommendations based on artists you love
+        </p>
+        
+        <div className="search-container">
+          <SearchBar />
+        </div>
+      </div>
+
+      <div className="featured-section">
+        <h2 className="featured-title">Or check some examples!</h2>
+        
+        {isLoading ? (
+          <LoadingSpinner message="Loading..." />
+        ) : (
+          <div className="featured-grid">
+            {Array(3).fill(featuredArtists).map((column, colIndex) => (
+              <div key={colIndex} className="featured-column">
+                {column.map((artistName, index) => (
+                  <Link 
+                    href={`/${slugify(artistName)}`} 
+                    key={`${colIndex}-${index}`}
+                    className="featured-artist-link"
+                  >
+                    {artistName}
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="info-section">
+        <div className="info-card">
+          <h3>How It Works</h3>
+          <p>
+            Simply search for any music artist you enjoy, and we'll recommend similar 
+            artists you might love, powered by AI and music analysis.
+          </p>
+        </div>
+        
+        <div className="info-card">
+          <h3>Create an Account</h3>
+          <p>
+            Sign up to unlock 3 personalized searches. Each search is cached 
+            and becomes available to everyone!
+          </p>
+        </div>
+        
+        <div className="info-card">
+          <h3>Discover New Music</h3>
+          <p>
+            Explore artist pages to see recommendations, top tracks, and more 
+            information to help you discover your next favorite.
+          </p>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+================
+File: scripts/cache-featured-artists.js
+================
+/**
+ * This script caches recommendations for featured artists
+ * Run with: node scripts/cache-featured-artists.js
+ */
+
+require('dotenv').config({ path: '.env.local' });
+const fs = require('fs');
+const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
+const OpenAI = require('openai');
+const fetch = require('node-fetch');
+
+// Initialize clients
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Spotify API helpers
+async function getSpotifyToken() {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing Spotify credentials');
+  }
+
+  const params = new URLSearchParams();
+  params.append('grant_type', 'client_credentials');
+
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+    },
+    body: params
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(`Failed to get Spotify access token: ${data.error}`);
+  }
+
+  return data.access_token;
+}
+
+async function searchArtist(name, token) {
+  const response = await fetch(
+    `https://api.spotify.com/v1/search?q=${encodeURIComponent(name)}&type=artist&limit=1`,
+    {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }
+  );
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(`Spotify search error: ${data.error?.message || 'Unknown error'}`);
+  }
+  
+  if (!data.artists.items.length) {
+    throw new Error(`No artist found for "${name}"`);
+  }
+  
+  // Return the full artist object
+  return data.artists.items[0];
+}
+
+async function getArtistDetails(artistId, token) {
+  // Get artist details
+  const artistResponse = await fetch(
+    `https://api.spotify.com/v1/artists/${artistId}`,
+    {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }
+  );
+  
+  const artistData = await artistResponse.json();
+  
+  if (!artistResponse.ok) {
+    throw new Error(`Error fetching artist: ${artistData.error?.message || 'Unknown error'}`);
+  }
+  
+  // Get top tracks
+  const tracksResponse = await fetch(
+    `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`,
+    {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }
+  );
+  
+  const tracksData = await tracksResponse.json();
+  
+  // Get related artists
+  const relatedResponse = await fetch(
+    `https://api.spotify.com/v1/artists/${artistId}/related-artists`,
+    {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }
+  );
+  
+  const relatedData = await relatedResponse.json();
+  
+  return {
+    id: artistData.id,
+    name: artistData.name,
+    image: artistData.images.length > 0 ? artistData.images[0].url : null,
+    genres: artistData.genres,
+    popularity: artistData.popularity,
+    followers: artistData.followers.total,
+    spotifyUrl: artistData.external_urls.spotify,
+    topTracks: tracksData.tracks?.slice(0, 5).map(track => ({
+      id: track.id,
+      name: track.name,
+      previewUrl: track.preview_url,
+      albumImage: track.album.images.length > 0 ? track.album.images[0].url : null
+    })) || [],
+    relatedArtists: relatedData.artists?.slice(0, 5).map(artist => ({
+      id: artist.id,
+      name: artist.name,
+      image: artist.images.length > 0 ? artist.images[0].url : null
+    })) || []
+  };
+}
+
+// OpenAI helper
+async function getArtistRecommendations(artistName) {
+  const prompt = `Give me 6 music artist recommendations similar to ${artistName}. Return only a JSON array with objects containing "name" (the artist name) and "reason" (a brief 1-2 sentence reason why this artist is similar). Format as [{name: "Artist Name", reason: "Brief reason"}]. Use a conversational, friendly tone and limit each reason to 100 characters max.`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      { 
+        role: "system", 
+        content: "You are a music recommendation expert. Provide accurate, thoughtful recommendations based on the artist name provided. Respond only with the requested JSON format." 
+      },
+      { 
+        role: "user", 
+        content: prompt 
+      }
+    ],
+    temperature: 0.7,
+    max_tokens: 500,
+  });
+
+  // Extract and parse the JSON from the response
+  const responseText = response.choices[0].message.content;
+  
+  // Handle any text before or after the JSON array
+  let jsonString = responseText.trim();
+  
+  // If response has backticks or other formatting, extract just the JSON part
+  if (jsonString.includes('```')) {
+    jsonString = jsonString.split('```')[1].replace('json', '').trim();
+  }
+  
+  try {
+    const recommendations = JSON.parse(jsonString);
+    
+    // Validate the response structure
+    if (!Array.isArray(recommendations) || recommendations.length === 0) {
+      throw new Error('Invalid response format');
+    }
+    
+    // Ensure we have exactly 6 recommendations
+    return recommendations.slice(0, 6);
+  } catch (parseError) {
+    console.error('Error parsing OpenAI response:', parseError);
+    throw new Error('Failed to parse recommendation data');
+  }
+}
+
+// Supabase caching helpers
+async function getCachedArtist(artistName) {
+  const { data, error } = await supabase
+    .from('artist_recommendations_cache')
+    .select('*')
+    .ilike('artist_name', artistName)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // Not "not found" error
+    throw error;
+  }
+
+  return data;
+}
+
+async function cacheArtistRecommendations(artistName, artistId, artistData, recommendations) {
+  const { data, error } = await supabase
+    .from('artist_recommendations_cache')
+    .insert([{
+      artist_name: artistName,
+      artist_spotify_id: artistId,
+      artist_data: artistData,
+      recommendations: recommendations,
+      is_featured: true
+    }])
+    .select();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function updateArtistCache(id, artistData, recommendations) {
+  const { data, error } = await supabase
+    .from('artist_recommendations_cache')
+    .update({
+      artist_data: artistData,
+      recommendations: recommendations,
+      is_featured: true
+    })
+    .eq('id', id)
+    .select();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+// Main function
+async function cacheFeaturedArtists() {
+  try {
+    // Load featured artists list
+    const featuredArtistsPath = path.join(__dirname, '..', 'data', 'featured-artists.json');
+    const featuredArtists = JSON.parse(fs.readFileSync(featuredArtistsPath, 'utf8'));
+
+    console.log(`Found ${featuredArtists.length} featured artists to cache`);
+
+    // Get Spotify token
+    const token = await getSpotifyToken();
+    
+    // Process each artist
+    const results = [];
+
+    for (const artistName of featuredArtists) {
+      try {
+        console.log(`Processing ${artistName}...`);
+        
+        // Check if already cached
+        const cachedArtist = await getCachedArtist(artistName);
+        
+        // First, search for the artist to get their Spotify ID
+        const artistInfo = await searchArtist(artistName, token);
+        const artistId = artistInfo.id;
+        
+        if (cachedArtist) {
+          console.log(`${artistName} already cached, updating...`);
+          
+          // Get fresh data
+          const artistDetails = await getArtistDetails(artistId, token);
+          const recommendations = await getArtistRecommendations(artistName);
+          
+          // Update cache
+          await updateArtistCache(cachedArtist.id, artistDetails, recommendations);
+          
+          results.push({
+            name: artistName,
+            status: 'updated',
+            success: true
+          });
+          
+          console.log(`Updated ${artistName} successfully`);
+        } else {
+          console.log(`${artistName} not cached, creating new entry...`);
+          
+          // Get fresh data
+          const artistDetails = await getArtistDetails(artistId, token);
+          const recommendations = await getArtistRecommendations(artistName);
+          
+          // Cache
+          await cacheArtistRecommendations(artistName, artistId, artistDetails, recommendations);
+          
+          results.push({
+            name: artistName,
+            status: 'created',
+            success: true
+          });
+          
+          console.log(`Cached ${artistName} successfully`);
+        }
+      } catch (error) {
+        console.error(`Error processing ${artistName}:`, error);
+        
+        results.push({
+          name: artistName,
+          status: 'error',
+          success: false,
+          error: error.message
+        });
+      }
+      
+      // Add a small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Print summary
+    console.log('\nCaching Summary:');
+    console.log('================');
+    console.log(`Total: ${results.length}`);
+    console.log(`Success: ${results.filter(r => r.success).length}`);
+    console.log(`Failed: ${results.filter(r => !r.success).length}`);
+    
+    if (results.filter(r => !r.success).length > 0) {
+      console.log('\nFailed artists:');
+      results.filter(r => !r.success).forEach(r => {
+        console.log(`- ${r.name}: ${r.error}`);
+      });
+    }
+
+  } catch (error) {
+    console.error('Error in cache script:', error);
+    process.exit(1);
+  }
+}
+
+// Run the script
+cacheFeaturedArtists()
+  .then(() => {
+    console.log('Cache script completed successfully');
+    process.exit(0);
+  })
+  .catch(error => {
+    console.error('Cache script failed:', error);
+    process.exit(1);
+  });
+
+================
+File: scripts/create-database.sql
+================
+-- Create extension for UUID if not exists
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Create app_settings table
+CREATE TABLE "app_settings" (
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "max_users" INTEGER NOT NULL DEFAULT 50,
+  "registration_open" BOOLEAN NOT NULL DEFAULT true,
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create user_profiles table
+CREATE TABLE "user_profiles" (
+  "id" UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  "search_count" INTEGER NOT NULL DEFAULT 0,
+  "is_admin" BOOLEAN NOT NULL DEFAULT false,
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create artist_recommendations_cache table
+CREATE TABLE "artist_recommendations_cache" (
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "artist_name" TEXT NOT NULL,
+  "artist_spotify_id" TEXT NOT NULL,
+  "artist_data" JSONB NOT NULL,
+  "recommendations" JSONB NOT NULL,
+  "is_featured" BOOLEAN NOT NULL DEFAULT false,
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  "created_by" UUID REFERENCES auth.users ON DELETE SET NULL
+);
+
+-- Add unique constraint on artist_name (case insensitive)
+CREATE UNIQUE INDEX artist_name_unique_idx ON "artist_recommendations_cache" (LOWER(artist_name));
+
+-- Add indexes for better performance
+CREATE INDEX artist_recommendations_cache_is_featured_idx ON "artist_recommendations_cache" (is_featured);
+CREATE INDEX artist_spotify_id_idx ON "artist_recommendations_cache" (artist_spotify_id);
+CREATE INDEX user_profiles_is_admin_idx ON "user_profiles" (is_admin);
+
+-- Insert default app settings
+INSERT INTO "app_settings" (max_users, registration_open)
+VALUES (50, true);
+
+-- Enable RLS (Row Level Security) for all tables
+ALTER TABLE "artist_recommendations_cache" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "user_profiles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "app_settings" ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for artist_recommendations_cache
+-- Everyone can read
+CREATE POLICY "Anyone can view artist recommendations" 
+  ON "artist_recommendations_cache" FOR SELECT USING (true);
+
+-- Only authenticated users can insert (fixed syntax)
+CREATE POLICY "Authenticated users can create artist recommendations" 
+  ON "artist_recommendations_cache" FOR INSERT 
+  WITH CHECK (auth.role() = 'authenticated');
+
+-- Only admins or the creator can update
+CREATE POLICY "Admins and creators can update artist recommendations" 
+  ON "artist_recommendations_cache" FOR UPDATE 
+  USING (
+    auth.uid() = created_by OR 
+    EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND is_admin = true)
+  );
+
+-- Create RLS policies for user_profiles
+-- Users can read their own profile
+CREATE POLICY "Users can view own profile" 
+  ON "user_profiles" FOR SELECT USING (auth.uid() = id);
+
+-- Admins can view all profiles
+CREATE POLICY "Admins can view all profiles" 
+  ON "user_profiles" FOR SELECT 
+  USING (EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND is_admin = true));
+
+-- Users can update their own profile
+CREATE POLICY "Users can update own profile" 
+  ON "user_profiles" FOR UPDATE USING (auth.uid() = id);
+
+-- Create RLS policies for app_settings
+-- Everyone can read settings
+CREATE POLICY "Anyone can view app settings" 
+  ON "app_settings" FOR SELECT USING (true);
+
+-- Only admins can update settings
+CREATE POLICY "Only admins can update app settings" 
+  ON "app_settings" FOR UPDATE 
+  USING (EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND is_admin = true));
+
+-- Create a view for user statistics
+CREATE OR REPLACE VIEW user_statistics AS
+SELECT 
+  COUNT(*) AS total_users,
+  SUM(search_count) AS total_searches,
+  COUNT(*) FILTER (WHERE is_admin = true) AS admin_count,
+  COUNT(*) FILTER (WHERE search_count >= 3) AS users_at_limit
+FROM user_profiles;
+
+-- Create a view for featured artists statistics
+CREATE OR REPLACE VIEW featured_artists_statistics AS
+SELECT 
+  COUNT(*) AS total_cached_artists,
+  COUNT(*) FILTER (WHERE is_featured = true) AS featured_count,
+  AVG(JSONB_ARRAY_LENGTH(recommendations)) AS avg_recommendations_per_artist
+FROM artist_recommendations_cache;
+
+-- Create a function to increment user search count
+CREATE OR REPLACE FUNCTION increment_search_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE user_profiles
+  SET search_count = search_count + 1
+  WHERE id = NEW.created_by;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create a trigger to increment user search count on cache insert
+CREATE TRIGGER increment_search_count_trigger
+AFTER INSERT ON artist_recommendations_cache
+FOR EACH ROW
+WHEN (NEW.created_by IS NOT NULL)
+EXECUTE FUNCTION increment_search_count();
+
+-- Create a function to check if user can search
+CREATE OR REPLACE FUNCTION can_user_search(user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  search_count INTEGER;
+BEGIN
+  SELECT up.search_count INTO search_count
+  FROM user_profiles up
+  WHERE up.id = user_id;
+  
+  RETURN search_count < 3;
+END;
+$$ LANGUAGE plpgsql;
+
+================
+File: scripts/search-artist.js
+================
+require('dotenv').config({ path: '.env.local' });
+const fetch = require('node-fetch');
+
+async function getSpotifyToken() {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+
+  const params = new URLSearchParams();
+  params.append('grant_type', 'client_credentials');
+
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Basic ' + Buffer.from(clientId + ':' + clientSecret).toString('base64')
+    },
+    body: params
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error('Failed to get Spotify access token: ' + data.error);
+  }
+
+  return data.access_token;
+}
+
+async function searchArtist(name, token) {
+  const response = await fetch(
+    'https://api.spotify.com/v1/search?q=' + encodeURIComponent(name) + '&type=artist&limit=1',
+    {
+      headers: { 'Authorization': 'Bearer ' + token }
+    }
+  );
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error('Spotify search error: ' + (data.error?.message || 'Unknown error'));
+  }
+  
+  if (!data.artists.items.length) {
+    throw new Error('No artist found for "' + name + '"');
+  }
+  
+  console.log(JSON.stringify(data.artists.items[0], null, 2));
+}
+
+(async () => {
+  try {
+    const token = await getSpotifyToken();
+    await searchArtist('Steven Wilson', token);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+})();
+
+================
+File: styles/artist-page.css
+================
+/* Artist page styles */
+
+.artist-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-s);
+}
+
+/* Simplified header */
+.artist-header-simple {
+  text-align: center;
+  margin: var(--space-l) 0;
+}
+
+.artist-header-simple .artist-name {
+  font-size: var(--font-size-l);
+  margin-bottom: var(--space-s);
+  line-height: 1;
+}
+
+.artist-header-simple .recommendations-subtitle {
+  font-size: var(--font-size-m);
+  color: var(--color-muted);
+  margin-top: var(--space-s);
+}
+
+/* Error and loading states */
+.artist-page-loading,
+.artist-not-found,
+.artist-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: var(--space-m);
+  text-align: center;
+}
+
+.go-home-button {
+  margin-top: var(--space-m);
+  padding: var(--space-xs) var(--space-s);
+  background-color: var(--color-highlight);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+.go-home-button:hover {
+  opacity: 0.9;
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+  .artist-header-simple .artist-name {
+    font-size: calc(var(--font-size-l) * 0.7);
+  }
+  
+  .artist-header-simple .recommendations-subtitle {
+    font-size: calc(var(--font-size-m) * 0.9);
+  }
+}
+
+================
+File: styles/auth.css
+================
+/* Authentication page styles */
+
+.auth-success {
+  padding: 15px;
+  background-color: rgba(67, 160, 71, 0.1);
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
+  border-radius: var(--border-radius);
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.email-confirmation-note {
+  color: var(--color-highlight);
+  font-weight: var(--font-weight-medium);
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+================
+File: styles/error-fallbacks.css
+================
+/* Error and fallback component styles */
+
+/* Error boundary */
+.error-boundary {
+  max-width: 500px;
+  margin: 60px auto;
+  padding: 30px;
+  text-align: center;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.error-boundary h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: var(--color-error);
+}
+
+.error-boundary p {
+  margin-bottom: 30px;
+  color: var(--color-text);
+}
+
+.error-boundary button {
+  padding: 10px 20px;
+  background-color: var(--color-highlight);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.error-boundary button:hover {
+  opacity: 0.9;
+}
+
+/* Recommendations fallback */
+.recommendations-fallback {
+  max-width: 600px;
+  margin: 60px auto;
+  padding: 30px;
+  text-align: center;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.recommendations-fallback h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.recommendations-fallback p {
+  margin-bottom: 30px;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.fallback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+}
+
+.fallback-button {
+  padding: 10px 20px;
+  background-color: var(--color-highlight);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.fallback-button:hover {
+  opacity: 0.9;
+  text-decoration: none;
+}
+
+.fallback-button.secondary {
+  background-color: var(--color-background-dark);
+}
+
+.fallback-button.signup {
+  background-color: var(--color-highlight);
+}
+
+/* Specific error types */
+.limit-error h2 {
+  color: var(--color-warning);
+}
+
+.login-error h2 {
+  color: var(--color-highlight);
+}
+
+.generic-error h2 {
+  color: var(--color-error);
+}
+
+/* Media queries */
+@media (max-width: 480px) {
+  .recommendations-fallback {
+    padding: 20px;
+    margin: 40px auto;
+  }
+  
+  .fallback-actions {
+    flex-direction: column;
+  }
+  
+  .fallback-button {
+    width: 100%;
+  }
+}
+
+================
+File: styles/globals.css
+================
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Color Palette */
+  --color-background: #E2E3DE;
+  --color-background-dark: #181818;
+  --color-border: #E5E5E5;
+  --color-shadow: rgba(0, 0, 0, 0.0);
+  
+  --color-highlight: #18181B;
+  --color-text: rgba(24, 24, 24, 0.72);
+  --color-text-invert: rgba(255, 255, 255, 0.72);
+  --color-muted: rgba(24, 24, 24, 0.56);
+  --color-dimmed: rgba(24, 24, 24, 0.12);
+  
+  /* Status Colors */
+  --color-error: #e53935;
+  --color-success: #43a047;
+  --color-warning: #ffa000;
+  
+  /* Layout */
+  --header-height: 4rem;
+  --footer-height: 3.75rem;
+  --max-width: 64rem;
+  
+  /* Typography */
+  --font-main: "objektiv-mk3", system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif;
+  
+  /* Typography Scale */
+  --font-size-xs: 0.75rem;  /* 12px - Small text, notes, footer */
+  --font-size-s: 0.875rem;  /* 14px - Secondary text */
+  --font-size-p: 1rem;      /* 16px - Body text, buttons, inputs */
+  --font-size-m: 1.25rem;   /* 20px - Subtitles, section headings */
+  --font-size-l: 4rem;      /* 64px - Main headings */
+  
+  /* Line Heights */
+  --line-height-tight: 1.2;  /* Headings */
+  --line-height-normal: 1.5; /* Body text */
+  
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  
+  /* Spacing Scale */
+  --space-xs: 0.5rem;
+  --space-s: 1rem;
+  --space-m: 2rem;
+  --space-l: 6rem;
+  
+  /* UI Elements */
+  --border-radius: 4px;
+  --transition-speed: 0.3s;
+  --card-shadow: 0 2px 8px var(--color-shadow);
+}
+
+body {
+  font-family: var(--font-main);
+  font-size: var(--font-size-p);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-background);
+}
+
+a {
+  color: var(--color-highlight);
+  text-decoration: none;
+  transition: color var(--transition-speed) ease;
+}
+
+a:hover {
+  opacity: 0.8;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+input, 
+button, 
+textarea, 
+select {
+  font: inherit;
+  font-family: var(--font-main);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--space-xs);
+}
+
+/* Layout */
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  height: var(--header-height);
+  background-color: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-s);
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.main-content {
+  flex: 1;
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-m) var(--space-s);
+}
+
+.footer {
+  height: var(--footer-height);
+  background-color: var(--color-background);
+  border-top: 1px solid var(--color-border);
+}
+
+.footer-content {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-s);
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* Logo */
+.logo {
+  font-size: var(--font-size-m);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-highlight);
+  text-decoration: none;
+}
+
+/* Auth menu */
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.user-info {
+  font-size: var(--font-size-s);
+  color: var(--color-muted);
+}
+
+.admin-link {
+  font-size: var(--font-size-s);
+  color: var(--color-highlight);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.logout-button {
+  font-size: var(--font-size-s);
+  color: var(--color-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: calc(var(--space-xs) * 0.5) var(--space-xs);
+  border-radius: var(--border-radius);
+  transition: background-color var(--transition-speed) ease;
+}
+
+.logout-button:hover {
+  background-color: var(--color-dimmed);
+}
+
+.auth-links {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.login-link, .signup-link {
+  font-size: var(--font-size-s);
+  color: var(--color-text);
+  text-decoration: none;
+  padding: calc(var(--space-xs) * 0.5) var(--space-s);
+  border-radius: var(--border-radius);
+  transition: background-color var(--transition-speed) ease;
+}
+
+.login-link:hover, .signup-link:hover {
+  background-color: var(--color-dimmed);
+}
+
+.signup-link {
+  background-color: var(--color-highlight);
+  color: var(--color-text-invert);
+}
+
+.signup-link:hover {
+  background-color: var(--color-highlight);
+  opacity: 0.9;
+}
+
+/* Hero section */
+.hero-section {
+  text-align: center;
+  margin-bottom: var(--space-l);
+  padding: var(--space-m) 0;
+}
+
+.hero-title {
+  font-size: var(--font-size-l);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-xs);
+  line-height: 1;
+}
+
+.hero-subtitle {
+  font-size: var(--font-size-m);
+  color: var(--color-muted);
+  margin-bottom: var(--space-m);
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Search container */
+.search-container {
+  max-width: 40rem;
+  margin: 0 auto;
+  position: relative;
+}
+
+.search-form {
+  width: 100%;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.search-input {
+  flex: 1;
+  height: 3rem;
+  padding: var(--space-xs) 3.5rem var(--space-xs) var(--space-s);
+  border: 1px solid var(--color-border);
+  border-radius: 1.5rem;
+  font-size: var(--font-size-p);
+  box-shadow: var(--card-shadow);
+  width: 100%;
+  transition: border-color var(--transition-speed) ease;
+  background-color: white;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-highlight);
+}
+
+.clear-button {
+  position: absolute;
+  right: 3.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-size: var(--font-size-m);
+  cursor: pointer;
+}
+
+.search-button {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: var(--color-highlight);
+  color: var(--color-text-invert);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: opacity var(--transition-speed) ease;
+}
+
+.search-button:hover {
+  opacity: 0.9;
+}
+
+.search-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: white;
+}
+
+/* Search suggestions */
+.suggestions-container {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 10px;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  z-index: 10;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.suggestions-list {
+  list-style: none;
+  padding: 0;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: var(--color-background);
+}
+
+.suggestion-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 15px;
+}
+
+.suggestion-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.suggestion-name {
+  font-weight: 500;
+}
+
+.suggestion-popularity {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* Loading spinner */
+.loading-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+
+.loading-spinner {
+  position: relative;
+}
+
+.spinner-small {
+  width: 20px;
+  height: 20px;
+}
+
+.spinner-medium {
+  width: 40px;
+  height: 40px;
+}
+
+.spinner-large {
+  width: 60px;
+  height: 60px;
+}
+
+.spinner-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--color-highlight);
+  border-radius: 50%;
+  animation: spinner 0.8s linear infinite;
+}
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-message {
+  margin-top: 15px;
+  color: var(--color-muted);
+}
+
+/* Featured section */
+.featured-section {
+  margin-bottom: var(--space-l);
+  background-color: var(--color-background);
+  padding: var(--space-m) 0 var(--space-l);
+}
+
+.featured-title {
+  text-align: center;
+  margin-bottom: var(--space-m);
+  font-size: var(--font-size-m);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-highlight);
+}
+
+.featured-grid {
+  display: flex;
+  justify-content: space-between;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-s);
+}
+
+.featured-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-align: left;
+  padding: 0 var(--space-s);
+}
+
+.featured-artist-link {
+  display: block;
+  padding: var(--space-xs) 0;
+  color: var(--color-text);
+  font-size: var(--font-size-p);
+  text-decoration: none;
+  transition: color var(--transition-speed) ease;
+}
+
+.featured-artist-link:hover {
+  color: var(--color-highlight);
+  text-decoration: underline;
+}
+
+/* Spotify links that might be used elsewhere */
+.spotify-link {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.spotify-link:hover {
+  color: var(--color-highlight);
+}
+
+/* Info section */
+.info-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.info-card {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  padding: 25px;
+  box-shadow: var(--card-shadow);
+}
+
+.info-card h3 {
+  color: var(--color-highlight);
+  margin-bottom: 15px;
+}
+
+.info-card p {
+  color: var(--color-muted);
+}
+
+/* Recommendation components */
+.recommendations-section {
+  margin: 60px 0;
+}
+
+.recommendations-title {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 24px;
+}
+
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.recommendation-card {
+  display: block;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  padding: 25px;
+  box-shadow: var(--card-shadow);
+  height: 100%;
+  text-decoration: none;
+  color: var(--color-text);
+  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+
+.recommendation-card:hover, .recommendation-card.hovered {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.recommendation-name {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: var(--color-text);
+}
+
+.recommendation-reason {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin-bottom: 20px;
+}
+
+.recommendation-footer {
+  margin-top: auto;
+}
+
+.view-link {
+  font-size: 14px;
+  color: var(--color-highlight);
+}
+
+/* Auth prompts */
+.auth-prompt {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  padding: 30px;
+  text-align: center;
+  margin: 30px 0;
+}
+
+.auth-prompt-title {
+  margin-bottom: 10px;
+}
+
+.auth-prompt-message {
+  margin-bottom: 20px;
+  color: var(--color-muted);
+}
+
+.auth-prompt-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.auth-prompt-login, .auth-prompt-signup {
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.auth-prompt-login {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.auth-prompt-login:hover {
+  background-color: var(--color-border);
+}
+
+.auth-prompt-signup {
+  background-color: var(--color-highlight);
+  color: white;
+}
+
+.auth-prompt-signup:hover {
+  background-color: var(--color-background-dark);
+}
+
+.auth-prompt-note {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+/* Search limit reached */
+.search-limit-reached {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  padding: 30px;
+  text-align: center;
+  margin: 30px 0;
+}
+
+.limit-reached-title {
+  color: var(--color-warning);
+  margin-bottom: 15px;
+}
+
+.limit-reached-message {
+  margin-bottom: 20px;
+  color: var(--color-muted);
+}
+
+.limit-reached-suggestions {
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  display: inline-block;
+}
+
+.limit-reached-suggestions h3 {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.limit-reached-suggestions ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.limit-reached-suggestions li {
+  font-size: 14px;
+  padding: 5px 10px;
+  background-color: var(--color-background);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.limit-reached-suggestions li:hover {
+  background-color: var(--color-border);
+}
+
+.limit-reached-info {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+/* Artist page */
+.artist-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.artist-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.artist-header .artist-image-container {
+  width: 300px;
+  height: 300px;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.artist-header .artist-info {
+  flex: 1;
+  min-width: 300px;
+  padding: 0;
+}
+
+.artist-header .artist-name {
+  font-size: 32px;
+  margin-bottom: 15px;
+}
+
+.artist-header .artist-genres {
+  margin-bottom: 20px;
+}
+
+.artist-header .artist-stats {
+  margin-bottom: 30px;
+}
+
+.artist-header .artist-followers,
+.artist-header .artist-popularity {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  gap: 10px;
+}
+
+.popularity-bar-container {
+  width: 100%;
+  height: 6px;
+  background-color: var(--color-background);
+  border-radius: 3px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.popularity-value {
+  font-weight: 500;
+}
+
+.stat-label {
+  min-width: 100px;
+  color: var(--color-muted);
+}
+
+.spotify-button {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #1DB954;
+  color: white;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: background-color var(--transition-speed) ease;
+  margin-bottom: 15px;
+}
+
+.spotify-button:hover {
+  background-color: #179443;
+  color: white;
+}
+
+.regenerate-button {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: var(--color-highlight);
+  color: white;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.regenerate-button:hover {
+  background-color: #15276b;
+}
+
+.top-tracks-section {
+  margin-top: 60px;
+}
+
+.section-title {
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.top-tracks-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+}
+
+.track-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.track-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.track-preview {
+  max-width: 200px;
+}
+
+.no-recommendations {
+  text-align: center;
+  margin: 60px 0;
+  padding: 30px;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+}
+
+.generate-button {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: var(--color-highlight);
+  color: white;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.generate-button:hover {
+  background-color: var(--color-background-dark);
+}
+
+/* Auth pages */
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - var(--header-height) - var(--footer-height));
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.auth-title {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.form-input {
+  padding: 10px 15px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  transition: border-color var(--transition-speed) ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-highlight);
+}
+
+.form-input.error {
+  border-color: var(--color-error);
+}
+
+.form-error {
+  color: var(--color-error);
+  font-size: 12px;
+}
+
+.auth-button {
+  padding: 12px;
+  background-color: var(--color-highlight);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.auth-button:hover {
+  background-color: var(--color-background-dark);
+}
+
+.auth-button:disabled {
+  background-color: var(--color-border);
+  cursor: not-allowed;
+}
+
+.auth-error {
+  padding: 10px;
+  background-color: rgba(229, 57, 53, 0.1);
+  border: 1px solid var(--color-error);
+  border-radius: 4px;
+  color: var(--color-error);
+  font-size: 14px;
+}
+
+.auth-note {
+  font-size: 14px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.auth-alternative {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.auth-alternative a {
+  color: var(--color-highlight);
+  font-weight: 500;
+}
+
+.closed-message {
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--color-error);
+}
+
+.auth-redirect-link {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  color: var(--color-highlight);
+}
+
+/* Admin page */
+.admin-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.admin-title {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.action-message {
+  padding: 15px;
+  border-radius: var(--border-radius);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.action-message.success {
+  background-color: rgba(67, 160, 71, 0.1);
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
+}
+
+.action-message.error {
+  background-color: rgba(229, 57, 53, 0.1);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+}
+
+.admin-search,
+.admin-featured-list {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 30px;
+}
+
+.admin-search h2,
+.admin-featured-list h2 {
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+
+.admin-search-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.admin-search-input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.admin-search-button {
+  padding: 10px 15px;
+  background-color: var(--color-highlight);
+  color: white;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.admin-search-button:hover {
+  background-color: var(--color-background-dark);
+}
+
+.admin-search-button:disabled {
+  background-color: var(--color-border);
+  cursor: not-allowed;
+}
+
+.admin-search-results h3 {
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.admin-result-list,
+.admin-artist-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-result-item,
+.admin-artist-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+}
+
+.admin-result-image,
+.admin-artist-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.admin-result-name,
+.admin-artist-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.admin-create-cache {
+  padding: 8px 12px;
+  background-color: var(--color-highlight);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.admin-create-cache:hover {
+  background-color: #15276b;
+}
+
+.admin-unfeature-button {
+  padding: 8px 12px;
+  background-color: var(--color-error);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.admin-unfeature-button:hover {
+  background-color: #c62828;
+}
+
+.admin-artist-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
+}
+
+.no-featured {
+  text-align: center;
+  padding: 20px;
+  color: var(--color-muted);
+}
+
+/* Error pages */
+.artist-not-found,
+.artist-error,
+.artist-page-loading {
+  text-align: center;
+  max-width: 600px;
+  margin: 60px auto;
+  padding: 30px;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+}
+
+.go-home-button {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: var(--color-highlight);
+  color: white;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.go-home-button:hover {
+  background-color: var(--color-background-dark);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: calc(var(--font-size-l) * 0.5);
+  }
+  
+  .hero-subtitle {
+    font-size: var(--font-size-p);
+  }
+  
+  .featured-grid {
+    flex-wrap: wrap;
+  }
+  
+  .featured-column {
+    flex: 0 0 50%;
+    margin-bottom: var(--space-m);
+  }
+  
+  /* Artist detail page styles preserved for when we build that page */
+  .artist-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .artist-header .artist-image-container {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .artist-header .artist-genres {
+    justify-content: center;
+  }
+  
+  .recommendations-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .track-preview {
+    max-width: 120px;
+  }
+  
+  .user-menu {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: var(--space-s);
+  }
+  
+  .featured-column {
+    flex: 0 0 100%;
+  }
+  
+  .recommendations-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .track-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--space-s);
+  }
+  
+  .track-name {
+    margin: var(--space-xs) 0;
+  }
+  
+  .track-preview {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+================
+File: styles/recommendations.css
+================
+/* Recommendation components styles */
+
+/* Grid layout */
+.recommendations-section {
+  margin: var(--space-m) 0 var(--space-l);
+}
+
+.recommendations-title {
+  text-align: center;
+  margin-bottom: var(--space-m);
+  font-size: var(--font-size-m);
+  font-weight: var(--font-weight-bold);
+}
+
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-m);
+}
+
+/* Card styling */
+.recommendation-card {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  height: 100%;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.recommendation-card:hover, 
+.recommendation-card.hovered {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Image container with badge */
+.recommendation-image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.recommendation-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.recommendation-type-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  padding: 4px 8px;
+  background-color: #000;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1;
+}
+
+/* Content area */
+.recommendation-content {
+  padding: var(--space-s);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.recommendation-title-link {
+  text-decoration: none;
+  color: var(--color-highlight);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.recommendation-title {
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.recommendation-subtitle {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin-top: 4px;
+}
+
+.recommendation-description {
+  font-size: 14px;
+  color: var(--color-text);
+  margin: 12px 0;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.recommendation-source {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.source-link {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.source-link:hover {
+  text-decoration: underline;
+  color: var(--color-highlight);
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+  .recommendations-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 15px;
+  }
+  
+  .recommendation-content {
+    padding: 12px;
+  }
+  
+  .recommendation-title {
+    font-size: 16px;
+  }
+  
+  .recommendation-description {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .recommendations-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .recommendation-content {
+    padding: 10px;
+  }
+  
+  .recommendation-title {
+    font-size: 15px;
+  }
+  
+  .recommendation-description {
+    font-size: 12px;
+    margin: 8px 0;
+  }
+}
+
+================
+File: .eslintrc.json
+================
+{
+  "extends": [
+    "next/core-web-vitals",
+    "eslint:recommended"
+  ],
+  "rules": {
+    "react/no-unescaped-entities": "off",
+    "react/prop-types": "off",
+    "@next/next/no-img-element": "off",
+    "no-unused-vars": "warn",
+    "no-console": "warn",
+    "no-undef": ["error", { "typeof": true }],
+    "no-useless-escape": "warn"
+  },
+  "globals": {
+    "Set": "readonly",
+    "Map": "readonly"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
+}
+
+================
+File: .gitignore
+================
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+**/.claude/settings.local.json
+
+================
+File: CLAUDE.md
+================
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+This is a music discovery application built with Next.js that combines Spotify data with AI-powered recommendations from OpenAI. The app allows users to search for artists, get personalized recommendations, and explore featured artists.
+
+## Tech Stack
+
+- Next.js (JavaScript)
+- React
+- Spotify Web API (spotify-web-api-js)
+- OpenAI API
+- Supabase (for authentication and caching)
+
+## Commands
+
+### Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm build
+
+# Start production server
+npm start
+
+# Run linting
+npm run lint
+```
+
+### Utility Scripts
+
+```bash
+# Cache featured artists' recommendations
+node scripts/cache-featured-artists.js
+```
+
+## Environment Setup
+
+Create a `.env.local` file with the following variables:
+
+```
+# Spotify API Credentials
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+
+# OpenAI API Key
+OPENAI_API_KEY=your_openai_api_key
+
+# Supabase settings
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_REDIRECT_URI=http://localhost:3000/api/auth/callback/spotify
+```
+
+## Architecture
+
+### Database Structure
+
+The application uses Supabase with the following tables:
+- `app_settings` - Global application settings
+- `user_profiles` - User information including search counts and admin status
+- `artist_recommendations_cache` - Cached artist data and recommendations
+
+### Key Components
+
+- `components/` - UI components (cards, layout, search, etc.)
+- `hooks/` - Custom React hooks for auth, search, and recommendations
+- `lib/` - API clients and utilities for Spotify, OpenAI, and Supabase
+- `pages/` - Next.js pages and API routes
+- `scripts/` - Utility scripts for caching and database setup
+
+### Data Flow
+
+1. Users search for artists via the SearchBar component
+2. The search is processed through custom hooks (useSearch)
+3. Artist data is fetched from Spotify API
+4. Recommendations are either retrieved from cache or generated with OpenAI
+5. Results are presented to the user via RecommendationGrid and ArtistCard components
+
+### Caching System
+
+- Featured artists' recommendations are pre-cached for performance
+- User searches are cached in Supabase (limited to 3 searches per user)
+- Cached data is shared across all users
+
+## Styling
+
+- Uses unified.css as a global CSS source
+- Mobile-first, responsive design
+
+## Project Constraints
+
+- Use JavaScript instead of TypeScript
+- Users are limited to 3 artist searches to encourage contribution
+
+## Feature Management
+
+To add or update featured artists, edit the `data/featured-artists.json` file and run the caching script.
+
+## System Role Instructions
+
+You are a Senior Front-End Developer and an Expert in ReactJS, NextJS, JavaScript, HTML, CSS and modern UI/UX. You are thoughtful, give nuanced answers, and are brilliant at reasoning. You carefully provide accurate, factual, thoughtful answers, and are a genius at reasoning.
+
+- Follow the user's requirements carefully & to the letter.
+- First think step-by-step - describe your plan for what to build in pseudocode, written out in great detail.
+- Confirm, then write code!
+- Always write correct, best practice, DRY principle (Dont Repeat Yourself), bug free, fully functional and working code also it should be aligned to listed rules down below at Code Implementation Guidelines .
+- Focus on easy and readability code, over being performant.
+- Fully implement all requested functionality.
+- Leave NO todo's, placeholders or missing pieces.
+- Ensure code is complete! Verify thoroughly finalised.
+- Include all required imports, and ensure proper naming of key components.
+- Be concise Minimize any other prose.
+- If you think there might not be a correct answer, you say so.
+- If you do not know the answer, say so, instead of guessing.
+
+### Security Guidelines
+
+1. **Trusting Client Data**: Never use form/URL input directly.
+   - Always validate & sanitize on server; escape output.
+
+2. **Secrets in Frontend**: Never place API keys/credentials in React/Next.js client code.
+   - Keep secrets server-side only (env vars, ensure .env is in .gitignore).
+
+3. **Authorization**: Don't just check if logged in, verify if allowed to perform actions.
+   - Server must verify permissions for every action & resource.
+
+4. **Error Handling**: Never expose detailed stack traces/DB errors to users.
+   - Use generic error messages for users; detailed logs for devs.
+
+5. **Ownership Checks**: Prevent IDOR vulnerabilities (letting user X access/edit user Y's data).
+   - Server must confirm current user owns/can access the specific resource ID.
+
+6. **Database Security**: Utilize database features like RLS for fine-grained access.
+   - Define data access rules directly in your database.
+
+7. **API Protection**: Implement rate limits and encrypt sensitive data.
+   - Rate limit APIs (middleware); encrypt sensitive data at rest; always use HTTPS.
+
+## Memories
+
+- Use ESlint after doing changes
+
+================
+File: jsconfig.json
+================
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/components/*": ["components/*"],
+      "@/lib/*": ["lib/*"],
+      "@/styles/*": ["styles/*"],
+      "@/hooks/*": ["hooks/*"],
+      "@/pages/*": ["pages/*"]
+    }
+  }
+}
+
+================
+File: next.config.js
+================
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  images: {
+    domains: ['i.scdn.co', 'mosaic.scdn.co'] // For Spotify images
+  }
+}
+
+module.exports = nextConfig
+
+================
+File: package.json
+================
+{
+  "name": "recd-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.0.1",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.5.0",
+    "next": "^14.2.28",
+    "openai": "^4.98.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-hook-form": "^7.56.3",
+    "spotify-web-api-js": "^1.5.2",
+    "use-debounce": "^10.0.4"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^15.3.2",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.0.4"
+  },
+  "overrides": {
+    "glob": "^10.3.10",
+    "rimraf": "^5.0.5",
+    "@humanwhocodes/config-array": "^0.11.14",
+    "@humanwhocodes/object-schema": "^2.0.0",
+    "inflight": "^2.0.0"
+  }
+}
+
+================
+File: README.md
+================
+# Music Discovery App
+
+A music recommendation application built with Next.js that combines Spotify data and AI-powered recommendations.
+
+## Features
+
+- Spotify authentication and integration
+- Personalized music recommendations
+- AI-generated artist recommendations using OpenAI
+- Featured artists with cached recommendations
+- Responsive, mobile-first design
+
+## Tech Stack
+
+- Next.js
+- React
+- Spotify Web API
+- OpenAI API
+- Supabase (for caching recommendations)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 14.x or higher
+- npm or yarn
+- Spotify Developer account
+- OpenAI API key
+- Supabase account
+
+### Installation
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/yourusername/music-discovery-nextjs.git
+cd music-discovery-nextjs
+```
+
+2. Install dependencies
+
+```bash
+npm install
+```
+
+3. Set up environment variables
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```
+# Spotify API Credentials
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+
+# OpenAI API Key
+OPENAI_API_KEY=your_openai_api_key
+
+# Supabase settings
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_REDIRECT_URI=http://localhost:3000/api/auth/callback/spotify
+```
+
+4. Set up your featured artists
+
+Edit the `data/featured-artists.json` file to include the artists you want to feature:
+
+```json
+[
+  "Artist Name 1",
+  "Artist Name 2",
+  "Artist Name 3"
+]
+```
+
+5. Cache featured artists' recommendations
+
+```bash
+node scripts/cache-featured-artists.js
+```
+
+This script will:
+- Search for each artist on Spotify to get their ID
+- Fetch artist details, top tracks, and related artists
+- Generate AI recommendations using OpenAI
+- Cache all this data in Supabase for faster page loads
+
+6. Run the development server
+
+```bash
+npm run dev
+```
+
+7. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+
+## Project Structure
+
+- `/components` - Reusable UI components
+- `/pages` - Next.js pages and API routes
+- `/lib` - Utilities and API clients
+- `/styles` - CSS files and styling
+- `/hooks` - Custom React hooks
+- `/data` - JSON data files including featured artists
+- `/scripts` - Utility scripts for caching and data management
+
+## Caching System
+
+The application uses a caching system to improve performance:
+
+1. Featured artists' recommendations are pre-cached using the `cache-featured-artists.js` script
+2. The script fetches data from Spotify and generates AI recommendations
+3. All data is stored in Supabase for fast access
+4. The cache can be refreshed by running the script again
+
+## License
+
+MIT
+
+
+
+================================================================
+End of Codebase
+================================================================

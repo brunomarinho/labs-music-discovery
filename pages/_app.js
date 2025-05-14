@@ -1,8 +1,12 @@
 import '../styles/globals.css';
 import '../styles/artist-page.css';
 import '../styles/recommendations.css';
+import '../styles/error-fallbacks.css';
+import '../styles/auth.css';
+import '../styles/debug.css';
 import { AuthProvider } from '../hooks/useAuth';
 import Head from 'next/head';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 function MyApp({ Component, pageProps }) {
   return (
@@ -10,7 +14,9 @@ function MyApp({ Component, pageProps }) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      <Component {...pageProps} />
+      <ErrorBoundary>
+        <Component {...pageProps} />
+      </ErrorBoundary>
     </AuthProvider>
   );
 }

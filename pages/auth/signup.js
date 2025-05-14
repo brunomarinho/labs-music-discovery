@@ -163,6 +163,9 @@ export default function Signup() {
                 By signing up, you'll get 3 artist searches to generate personalized 
                 recommendations.
               </p>
+              <p className="email-confirmation-note">
+                Please check your email to confirm your account after signing up.
+              </p>
             </div>
             
             <div className="auth-alternative">

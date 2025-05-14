@@ -1,0 +1,121 @@
+/* Error and fallback component styles */
+
+/* Error boundary */
+.error-boundary {
+  max-width: 500px;
+  margin: 60px auto;
+  padding: 30px;
+  text-align: center;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.error-boundary h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: var(--color-error);
+}
+
+.error-boundary p {
+  margin-bottom: 30px;
+  color: var(--color-text);
+}
+
+.error-boundary button {
+  padding: 10px 20px;
+  background-color: var(--color-highlight);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.error-boundary button:hover {
+  opacity: 0.9;
+}
+
+/* Recommendations fallback */
+.recommendations-fallback {
+  max-width: 600px;
+  margin: 60px auto;
+  padding: 30px;
+  text-align: center;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.recommendations-fallback h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.recommendations-fallback p {
+  margin-bottom: 30px;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.fallback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+}
+
+.fallback-button {
+  padding: 10px 20px;
+  background-color: var(--color-highlight);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.fallback-button:hover {
+  opacity: 0.9;
+  text-decoration: none;
+}
+
+.fallback-button.secondary {
+  background-color: var(--color-background-dark);
+}
+
+.fallback-button.signup {
+  background-color: var(--color-highlight);
+}
+
+/* Specific error types */
+.limit-error h2 {
+  color: var(--color-warning);
+}
+
+.login-error h2 {
+  color: var(--color-highlight);
+}
+
+.generic-error h2 {
+  color: var(--color-error);
+}
+
+/* Media queries */
+@media (max-width: 480px) {
+  .recommendations-fallback {
+    padding: 20px;
+    margin: 40px auto;
+  }
+  
+  .fallback-actions {
+    flex-direction: column;
+  }
+  
+  .fallback-button {
+    width: 100%;
+  }
+}

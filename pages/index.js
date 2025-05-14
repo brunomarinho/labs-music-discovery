@@ -30,19 +30,17 @@ export default function Home() {
           <LoadingSpinner message="Loading..." />
         ) : (
           <div className="featured-grid">
-            {Array(3).fill(featuredArtists).map((column, colIndex) => (
-              <div key={colIndex} className="featured-column">
-                {column.map((artistName, index) => (
-                  <Link 
-                    href={`/${slugify(artistName)}`} 
-                    key={`${colIndex}-${index}`}
-                    className="featured-artist-link"
-                  >
-                    {artistName}
-                  </Link>
-                ))}
-              </div>
-            ))}
+            <div className="featured-column">
+              {featuredArtists.map((artistName, index) => (
+                <Link 
+                  href={`/${slugify(artistName)}`} 
+                  key={index}
+                  className="featured-artist-link"
+                >
+                  {artistName}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -8,7 +8,13 @@
     "react/prop-types": "off",
     "@next/next/no-img-element": "off",
     "no-unused-vars": "warn",
-    "no-console": "warn"
+    "no-console": "warn",
+    "no-undef": ["error", { "typeof": true }],
+    "no-useless-escape": "warn"
+  },
+  "globals": {
+    "Set": "readonly",
+    "Map": "readonly"
   },
   "settings": {
     "react": {

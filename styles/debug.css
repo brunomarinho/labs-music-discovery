@@ -1,0 +1,115 @@
+.openai-debug-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.openai-debug-container h1 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.openai-debug-container p.warning {
+  color: #dc3545;
+  font-weight: bold;
+  padding: 10px;
+  background-color: #f8d7da;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.form-container {
+  margin-bottom: 20px;
+}
+
+.input-group {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.input-field {
+  flex: 1;
+  padding: 10px;
+  margin-right: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.submit-button {
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.submit-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.options-container {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.json-container {
+  margin-bottom: 30px;
+}
+
+.json-container h2 {
+  margin-bottom: 10px;
+}
+
+.json-content {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 5px;
+  overflow: auto;
+  max-height: 400px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.error-container {
+  padding: 15px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.success-container {
+  padding: 15px;
+  background-color: #d1e7dd;
+  color: #0f5132;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+/* Loading spinner container */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .input-group {
+    flex-direction: column;
+  }
+  
+  .input-field {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+  
+  .options-container {
+    flex-direction: column;
+  }
+}

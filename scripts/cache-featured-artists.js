@@ -129,27 +129,75 @@ async function getArtistDetails(artistId, token) {
   };
 }
 
-// OpenAI helper
-async function getArtistRecommendations(artistName) {
-  const prompt = `Give me 6 music artist recommendations similar to ${artistName}. Return only a JSON array with objects containing "name" (the artist name) and "reason" (a brief 1-2 sentence reason why this artist is similar). Format as [{name: "Artist Name", reason: "Brief reason"}]. Use a conversational, friendly tone and limit each reason to 100 characters max.`;
+// OpenAI helper - Uses the same format as the main app for consistency
+async function getArtistRecommendations(artistName, artistId) {
+  // System prompt for web search
+  const systemPrompt = `You are a music-industry research specialist with full websearch access. ` +
+    `Find the MOST RECENT (past 12 months) instances where ${artistName} has ` +
+    `EXPLICITLY recommended another artist, album, or song—only in interviews, podcasts, ` +
+    `YouTube videos, or social-media posts (no hearsay). ` +
+    `For each entry you must:` +
+    `\n  • Verify that the sourceUrl responds over HTTPS with HTTP 200.` +
+    `\n  • Only use domains ending in .com, .org, or .net.` +
+    `\n  • Extract: name, type (artist|album|song), exact quote, year, month, source type, domain, author (if known).` +
+    `\nCRITICAL:` +
+    `\n 1) Output only valid JSON: an array starting with "[" and ending with "]".` +
+    `\n 2) Do NOT wrap in code fences or add any text before/after.` +
+    `\n 3) If nothing is found, return \`[]\` exactly.`;
 
+  // User prompt for web search
+  const userPrompt = `Search for instances in the last 12 months where ${artistName}${artistId ? ` (id: ${artistId})` : ''} ` +
+    `has explicitly recommended music to others (artist, album, or song) in interviews, ` +
+    `podcasts, YouTube videos, or social-media posts.  
+
+     For each recommendation, verify that the URL:  
+     • Uses HTTPS  
+     • Returns HTTP status 200  
+     • Is on a .com, .org, or .net domain  
+
+     Output **only** a JSON array of objects with exactly these fields:
+     [
+       {
+         "name":        "Artist/Album/Song Name",
+         "type":        "artist|album|song",
+         "quote":       "Exact excerpt of recommendation",
+         "year":        "YYYY",
+         "month":       "MM",
+         "source":      "Interview|Podcast|YouTube|Social media",
+         "domain":      "example.com", 
+         "author":      "Interviewer or poster name (if known)",
+         "sourceUrl":   "https://…"
+       },
+       …
+     ]
+
+     **IMPORTANT:**
+     - Do not include any text before or after the JSON.
+     - If any record fails URL or domain validation, omit it.
+     - If you find no valid recommendations, return \`[]\`.`;
+
+  console.log(`Making OpenAI request for artist ${artistName}${artistId ? ` (${artistId})` : ''}`);
+  
+  // Create the OpenAI chat completion with web search
   const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
+    model: "gpt-4o-search-preview",  // Use gpt-4o-search-preview for all requests
     messages: [
       { 
         role: "system", 
-        content: "You are a music recommendation expert. Provide accurate, thoughtful recommendations based on the artist name provided. Respond only with the requested JSON format." 
+        content: systemPrompt
       },
       { 
         role: "user", 
-        content: prompt 
+        content: userPrompt
       }
     ],
-    temperature: 0.7,
-    max_tokens: 500,
+    max_tokens: 4000,
+    web_search_options: {
+      search_context_size: "medium"  // Balanced context, cost, and latency
+    }
   });
 
-  // Extract and parse the JSON from the response
+  // Extract response content
   const responseText = response.choices[0].message.content;
   
   // Handle any text before or after the JSON array
@@ -161,17 +209,32 @@ async function getArtistRecommendations(artistName) {
   }
   
   try {
+    // Parse and validate the JSON
     const recommendations = JSON.parse(jsonString);
     
     // Validate the response structure
-    if (!Array.isArray(recommendations) || recommendations.length === 0) {
-      throw new Error('Invalid response format');
+    if (!Array.isArray(recommendations)) {
+      throw new Error('Invalid response format - not an array');
     }
     
-    // Ensure we have exactly 6 recommendations
-    return recommendations.slice(0, 6);
+    // If no recommendations found, return empty array
+    if (recommendations.length === 0) {
+      console.log(`No recommendations found for ${artistName}`);
+      return [];
+    }
+    
+    // Validate the recommendations have the required fields
+    const validatedRecommendations = recommendations.filter(rec => {
+      const hasRequiredFields = rec.name && rec.type && (rec.quote || rec.reason);
+      const validType = ['artist', 'album', 'song'].includes(rec.type.toLowerCase());
+      return hasRequiredFields && validType;
+    });
+    
+    // Return up to 10 recommendations
+    return validatedRecommendations.slice(0, 10);
   } catch (parseError) {
     console.error('Error parsing OpenAI response:', parseError);
+    console.error('Raw response:', responseText);
     throw new Error('Failed to parse recommendation data');
   }
 }
@@ -259,7 +322,7 @@ async function cacheFeaturedArtists() {
           
           // Get fresh data
           const artistDetails = await getArtistDetails(artistId, token);
-          const recommendations = await getArtistRecommendations(artistName);
+          const recommendations = await getArtistRecommendations(artistName, artistId);
           
           // Update cache
           await updateArtistCache(cachedArtist.id, artistDetails, recommendations);
@@ -276,7 +339,7 @@ async function cacheFeaturedArtists() {
           
           // Get fresh data
           const artistDetails = await getArtistDetails(artistId, token);
-          const recommendations = await getArtistRecommendations(artistName);
+          const recommendations = await getArtistRecommendations(artistName, artistId);
           
           // Cache
           await cacheArtistRecommendations(artistName, artistId, artistDetails, recommendations);

@@ -10,7 +10,7 @@ import logger from '../../lib/logger';
 export default function Login() {
   const { login } = useAuth();
   const router = useRouter();
-  const { redirect } = router.query;
+  const { redirect, registered } = router.query;
   const [loginError, setLoginError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -43,6 +43,12 @@ export default function Login() {
       <div className="auth-page">
         <div className="auth-container">
           <h1 className="auth-title">Log In</h1>
+          
+          {registered && (
+            <div className="auth-success">
+              <p>Account created successfully! Please check your email to confirm your account before logging in.</p>
+            </div>
+          )}
           
           <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
             <div className="form-group">
