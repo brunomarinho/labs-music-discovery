@@ -5,6 +5,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../hooks/useAuth';
 import { getFeaturedArtists, markArtistAsFeatured } from '../../lib/supabase';
 import { searchArtist } from '../../lib/spotify';
+import logger from '../../lib/logger';
 
 export default function ManageFeatured() {
   const { user, isAdmin } = useAuth();
@@ -38,7 +39,7 @@ export default function ManageFeatured() {
         
         setFeaturedArtists(data || []);
       } catch (err) {
-        console.error('Error fetching featured artists:', err);
+        logger.error('Error fetching featured artists:', err);
         setError('Failed to load featured artists');
       } finally {
         setIsLoading(false);
@@ -68,7 +69,7 @@ export default function ManageFeatured() {
       const results = await searchArtist(searchQuery);
       setSearchResults(results);
     } catch (err) {
-      console.error('Error searching artists:', err);
+      logger.error('Error searching artists:', err);
       setError('Failed to search artists');
       setSearchResults([]);
     } finally {
@@ -95,7 +96,7 @@ export default function ManageFeatured() {
       setFeaturedArtists(data || []);
       setActionMessage(`Artist ${!isFeatured ? 'featured' : 'unfeatured'} successfully`);
     } catch (err) {
-      console.error('Error toggling featured status:', err);
+      logger.error('Error toggling featured status:', err);
       setError(`Failed to ${!isFeatured ? 'feature' : 'unfeature'} artist`);
     } finally {
       setIsLoading(false);

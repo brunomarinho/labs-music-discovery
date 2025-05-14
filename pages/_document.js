@@ -10,8 +10,6 @@ export default function Document() {
         {/* Favicon - moved from Layout since it's static */}
         <link rel="icon" href="/favicon.ico" />
         
-        {/* Viewport meta - moved from Layout since it's static */}
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <body>
         <Main />

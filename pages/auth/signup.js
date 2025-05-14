@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import Layout from '../../components/Layout';
+import logger from '../../lib/logger';
 import { useAuth } from '../../hooks/useAuth';
 import useUserLimits from '../../hooks/useUserLimits';
 import { isValidEmail, isValidPassword } from '../../lib/utils';
 
 export default function Signup() {
   const { register: registerUser } = useAuth();
-  const { canRegister, maxUsers, loading: limitsLoading } = useUserLimits();
+  const { canRegister, loading: limitsLoading } = useUserLimits();
   const router = useRouter();
   const { redirect } = router.query;
   const [signupError, setSignupError] = useState(null);
@@ -39,7 +40,7 @@ export default function Signup() {
       // Redirect to login page with success message
       router.push(`/auth/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}${redirect ? '&' : '?'}registered=true`);
     } catch (error) {
-      console.error('Signup error:', error);
+      logger.error('Signup error:', error);
       setSignupError('An unexpected error occurred');
     } finally {
       setIsLoading(false);

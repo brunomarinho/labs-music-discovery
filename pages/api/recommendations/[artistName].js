@@ -1,4 +1,5 @@
 import { searchArtist } from '../../../lib/spotify';
+import logger from '../../../lib/logger';
 import { getArtistRecommendationsWithCache } from '../../../lib/cache-manager';
 import { getCachedArtistRecommendations, incrementSearchCount, getUserProfile } from '../../../lib/supabase';
 import { supabase } from '../../../lib/supabase';
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
     // Should not reach here, but just in case
     return res.status(404).json({ error: 'Artist recommendations not found' });
   } catch (error) {
-    console.error('Error in recommendations API:', error);
+    logger.error('Error in recommendations API:', error);
     return res.status(500).json({ error: 'Failed to fetch recommendations' });
   }
 }

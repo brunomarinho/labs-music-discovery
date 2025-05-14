@@ -21,8 +21,9 @@
     "use-debounce": "^10.0.4"
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
-    "eslint-config-next": "14.0.4"
+    "@next/eslint-plugin-next": "^15.3.2",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.0.4"
   },
   "overrides": {
     "glob": "^10.3.10",

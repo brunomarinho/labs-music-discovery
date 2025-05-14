@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useDebounce } from 'use-debounce';
 import { slugify } from '../lib/utils';
+import logger from '../lib/logger';
 
 export default function SearchBar() {
   const [query, setQuery] = useState('');
@@ -31,7 +32,7 @@ export default function SearchBar() {
         const data = await response.json();
         setSuggestions(data);
       } catch (error) {
-        console.error('Error fetching suggestions:', error);
+        logger.error('Error fetching suggestions:', error);
         setSuggestions([]);
       } finally {
         setIsLoading(false);

@@ -7,7 +7,7 @@ import featuredArtists from '../data/featured-artists.json';
 import { slugify } from '../lib/utils';
 
 export default function Home() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   return (
     <Layout>

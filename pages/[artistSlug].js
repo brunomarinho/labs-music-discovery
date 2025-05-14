@@ -9,6 +9,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../hooks/useAuth';
 import { deslugify, formatNumber } from '../lib/utils';
 import { getPlaceholderImage } from '../lib/utils';
+import logger from '../lib/logger';
 
 export default function ArtistPage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function ArtistPage() {
         setArtistData(data.artist_data || null);
         setRecommendations(data.recommendations || []);
       } catch (err) {
-        console.error('Error fetching artist data:', err);
+        logger.error('Error fetching artist data:', err);
         setError(err.message);
       } finally {
         setIsLoading(false);
@@ -80,7 +81,7 @@ export default function ArtistPage() {
       setArtistData(data.artist_data || null);
       setRecommendations(data.recommendations || []);
     } catch (err) {
-      console.error('Error regenerating recommendations:', err);
+      logger.error('Error regenerating recommendations:', err);
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -147,8 +148,7 @@ export default function ArtistPage() {
     popularity = 0,
     followers = 0,
     spotifyUrl,
-    topTracks = [],
-    relatedArtists = []
+    topTracks = []
   } = artistData;
 
   return (

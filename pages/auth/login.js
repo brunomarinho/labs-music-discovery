@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import { isValidEmail } from '../../lib/utils';
+import logger from '../../lib/logger';
 
 export default function Login() {
   const { login } = useAuth();
@@ -30,7 +31,7 @@ export default function Login() {
       // Redirect to the previous page or home
       router.push(redirect || '/');
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       setLoginError('An unexpected error occurred');
     } finally {
       setIsLoading(false);

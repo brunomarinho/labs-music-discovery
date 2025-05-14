@@ -1,3 +1,5 @@
+import logger from '../../../../lib/logger';
+
 export default async function handler(req, res) {
   const { code } = req.query;
 
@@ -30,7 +32,7 @@ export default async function handler(req, res) {
     // Redirect back to the client side with the access token
     res.redirect(`/?token=${data.access_token}&expires_in=${data.expires_in}`);
   } catch (error) {
-    console.error('Spotify token exchange error:', error);
+    logger.error('Spotify token exchange error:', error);
     res.redirect(`/?error=${encodeURIComponent(error.message)}`);
   }
 }
