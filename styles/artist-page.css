@@ -1,0 +1,63 @@
+/* Artist page styles */
+
+.artist-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-s);
+}
+
+/* Simplified header */
+.artist-header-simple {
+  text-align: center;
+  margin: var(--space-l) 0;
+}
+
+.artist-header-simple .artist-name {
+  font-size: var(--font-size-l);
+  margin-bottom: var(--space-s);
+  line-height: 1;
+}
+
+.artist-header-simple .recommendations-subtitle {
+  font-size: var(--font-size-m);
+  color: var(--color-muted);
+  margin-top: var(--space-s);
+}
+
+/* Error and loading states */
+.artist-page-loading,
+.artist-not-found,
+.artist-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: var(--space-m);
+  text-align: center;
+}
+
+.go-home-button {
+  margin-top: var(--space-m);
+  padding: var(--space-xs) var(--space-s);
+  background-color: var(--color-highlight);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+.go-home-button:hover {
+  opacity: 0.9;
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+  .artist-header-simple .artist-name {
+    font-size: calc(var(--font-size-l) * 0.7);
+  }
+  
+  .artist-header-simple .recommendations-subtitle {
+    font-size: calc(var(--font-size-m) * 0.9);
+  }
+}

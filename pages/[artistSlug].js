@@ -7,8 +7,7 @@ import AuthPrompt from '../components/AuthPrompt';
 import SearchLimitReached from '../components/SearchLimitReached';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../hooks/useAuth';
-import { deslugify, formatNumber } from '../lib/utils';
-import { getPlaceholderImage } from '../lib/utils';
+import { deslugify } from '../lib/utils';
 import logger from '../lib/logger';
 
 export default function ArtistPage() {
@@ -140,16 +139,8 @@ export default function ArtistPage() {
     );
   }
 
-  // Artist page content
-  const {
-    name,
-    image,
-    genres = [],
-    popularity = 0,
-    followers = 0,
-    spotifyUrl,
-    topTracks = []
-  } = artistData;
+  // Artist page content - simplified version
+  const { name } = artistData;
 
   return (
     <Layout title={`${name} - Recommendations | Rec'd`}>
@@ -158,76 +149,13 @@ export default function ArtistPage() {
       </Head>
 
       <div className="artist-page">
-        <div className="artist-header">
-          <div className="artist-image-container">
-            <img
-              src={image || getPlaceholderImage()}
-              alt={name}
-              className="artist-image"
-              width={300}
-              height={300}
-            />
-          </div>
-          
-          <div className="artist-info">
-            <h1 className="artist-name">{name}</h1>
-            
-            {genres && genres.length > 0 && (
-              <div className="artist-genres">
-                {genres.map((genre, index) => (
-                  <span key={index} className="genre-tag">
-                    {genre}
-                  </span>
-                ))}
-              </div>
-            )}
-            
-            <div className="artist-stats">
-              {followers > 0 && (
-                <div className="artist-followers">
-                  <span className="stat-label">Followers:</span>
-                  <span className="stat-value">{formatNumber(followers)}</span>
-                </div>
-              )}
-              
-              {popularity > 0 && (
-                <div className="artist-popularity">
-                  <span className="stat-label">Popularity:</span>
-                  <div className="popularity-bar-container">
-                    <div className="popularity-bar" style={{ width: `${popularity}%` }}></div>
-                  </div>
-                  <span className="popularity-value">{popularity}%</span>
-                </div>
-              )}
-            </div>
-            
-            {spotifyUrl && (
-              <a
-                href={spotifyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="spotify-button"
-              >
-                Listen on Spotify
-              </a>
-            )}
-            
-            {user && !hasReachedSearchLimit && (
-              <button 
-                onClick={handleRegenerateRecommendations}
-                className="regenerate-button"
-              >
-                Regenerate Recommendations
-              </button>
-            )}
-          </div>
+        <div className="artist-header-simple">
+          <h1 className="artist-name">{name}</h1>
+          <h2 className="recommendations-subtitle">Recommendations</h2>
         </div>
         
         {recommendations && recommendations.length > 0 ? (
-          <RecommendationGrid 
-            recommendations={recommendations} 
-            title={`If you like ${name}, you might also like...`}
-          />
+          <RecommendationGrid recommendations={recommendations} />
         ) : (
           <div className="no-recommendations">
             <p>No recommendations available for this artist.</p>
@@ -243,35 +171,6 @@ export default function ArtistPage() {
             
             {!user && <AuthPrompt />}
             {user && hasReachedSearchLimit && <SearchLimitReached />}
-          </div>
-        )}
-        
-        {topTracks && topTracks.length > 0 && (
-          <div className="top-tracks-section">
-            <h2 className="section-title">Top Tracks</h2>
-            <ul className="top-tracks-list">
-              {topTracks.map((track, index) => (
-                <li key={index} className="track-item">
-                  {track.albumImage && (
-                    <img
-                      src={track.albumImage}
-                      alt={track.name}
-                      className="track-image"
-                      width={60}
-                      height={60}
-                    />
-                  )}
-                  <span className="track-name">{track.name}</span>
-                  {track.previewUrl && (
-                    <audio
-                      controls
-                      className="track-preview"
-                      src={track.previewUrl}
-                    ></audio>
-                  )}
-                </li>
-              ))}
-            </ul>
           </div>
         )}
       </div>

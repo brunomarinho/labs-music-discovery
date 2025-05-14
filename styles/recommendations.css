@@ -1,0 +1,157 @@
+/* Recommendation components styles */
+
+/* Grid layout */
+.recommendations-section {
+  margin: var(--space-m) 0 var(--space-l);
+}
+
+.recommendations-title {
+  text-align: center;
+  margin-bottom: var(--space-m);
+  font-size: var(--font-size-m);
+  font-weight: var(--font-weight-bold);
+}
+
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-m);
+}
+
+/* Card styling */
+.recommendation-card {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  height: 100%;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.recommendation-card:hover, 
+.recommendation-card.hovered {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Image container with badge */
+.recommendation-image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.recommendation-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.recommendation-type-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  padding: 4px 8px;
+  background-color: #000;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1;
+}
+
+/* Content area */
+.recommendation-content {
+  padding: var(--space-s);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.recommendation-title-link {
+  text-decoration: none;
+  color: var(--color-highlight);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.recommendation-title {
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.recommendation-subtitle {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin-top: 4px;
+}
+
+.recommendation-description {
+  font-size: 14px;
+  color: var(--color-text);
+  margin: 12px 0;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.recommendation-source {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.source-link {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.source-link:hover {
+  text-decoration: underline;
+  color: var(--color-highlight);
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+  .recommendations-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 15px;
+  }
+  
+  .recommendation-content {
+    padding: 12px;
+  }
+  
+  .recommendation-title {
+    font-size: 16px;
+  }
+  
+  .recommendation-description {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .recommendations-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .recommendation-content {
+    padding: 10px;
+  }
+  
+  .recommendation-title {
+    font-size: 15px;
+  }
+  
+  .recommendation-description {
+    font-size: 12px;
+    margin: 8px 0;
+  }
+}
