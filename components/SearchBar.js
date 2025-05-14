@@ -137,11 +137,6 @@ export default function SearchBar() {
                   )}
                   <div className="suggestion-info">
                     <span className="suggestion-name">{artist.name}</span>
-                    {artist.popularity && (
-                      <span className="suggestion-popularity">
-                        Popularity: {artist.popularity}%
-                      </span>
-                    )}
                   </div>
                 </li>
               ))}

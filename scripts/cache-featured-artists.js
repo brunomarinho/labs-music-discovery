@@ -1,6 +1,10 @@
 /**
  * This script caches recommendations for featured artists
- * Run with: node scripts/cache-featured-artists.js
+ * Run with: npm run cache
+ * 
+ * Options:
+ * --debug    Enable verbose logging
+ * --force    Force refresh of all artists
  */
 
 require('dotenv').config({ path: '.env.local' });
@@ -9,6 +13,33 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const OpenAI = require('openai');
 const fetch = require('node-fetch');
+
+// Simple logger with level control
+const logger = {
+  level: 'info',
+  
+  setLevel(level) {
+    this.level = level;
+  },
+  
+  debug(...args) {
+    if (this.level === 'debug') {
+      console.log('[DEBUG]', ...args);
+    }
+  },
+  
+  log(...args) {
+    console.log(...args);
+  },
+  
+  warn(...args) {
+    console.warn('[WARNING]', ...args);
+  },
+  
+  error(...args) {
+    console.error('[ERROR]', ...args);
+  }
+};
 
 // Initialize clients
 const supabase = createClient(
@@ -73,7 +104,7 @@ async function searchArtist(name, token) {
 }
 
 async function getArtistDetails(artistId, token) {
-  // Get artist details
+  // Get only basic artist details
   const artistResponse = await fetch(
     `https://api.spotify.com/v1/artists/${artistId}`,
     {
@@ -87,45 +118,11 @@ async function getArtistDetails(artistId, token) {
     throw new Error(`Error fetching artist: ${artistData.error?.message || 'Unknown error'}`);
   }
   
-  // Get top tracks
-  const tracksResponse = await fetch(
-    `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`,
-    {
-      headers: { 'Authorization': `Bearer ${token}` }
-    }
-  );
-  
-  const tracksData = await tracksResponse.json();
-  
-  // Get related artists
-  const relatedResponse = await fetch(
-    `https://api.spotify.com/v1/artists/${artistId}/related-artists`,
-    {
-      headers: { 'Authorization': `Bearer ${token}` }
-    }
-  );
-  
-  const relatedData = await relatedResponse.json();
-  
+  // Return only the minimal required data
   return {
     id: artistData.id,
     name: artistData.name,
-    image: artistData.images.length > 0 ? artistData.images[0].url : null,
-    genres: artistData.genres,
-    popularity: artistData.popularity,
-    followers: artistData.followers.total,
-    spotifyUrl: artistData.external_urls.spotify,
-    topTracks: tracksData.tracks?.slice(0, 5).map(track => ({
-      id: track.id,
-      name: track.name,
-      previewUrl: track.preview_url,
-      albumImage: track.album.images.length > 0 ? track.album.images[0].url : null
-    })) || [],
-    relatedArtists: relatedData.artists?.slice(0, 5).map(artist => ({
-      id: artist.id,
-      name: artist.name,
-      image: artist.images.length > 0 ? artist.images[0].url : null
-    })) || []
+    image: artistData.images.length > 0 ? artistData.images[0].url : null
   };
 }
 
@@ -292,13 +289,19 @@ async function updateArtistCache(id, artistData, recommendations) {
 }
 
 // Main function
-async function cacheFeaturedArtists() {
+async function cacheFeaturedArtists(options = {}) {
+  const { debug = false, force = false } = options;
+  
   try {
     // Load featured artists list
     const featuredArtistsPath = path.join(__dirname, '..', 'data', 'featured-artists.json');
     const featuredArtists = JSON.parse(fs.readFileSync(featuredArtistsPath, 'utf8'));
 
     console.log(`Found ${featuredArtists.length} featured artists to cache`);
+    
+    if (force) {
+      console.log('Force refresh enabled - will update all artists regardless of cache status');
+    }
 
     // Get Spotify token
     const token = await getSpotifyToken();
@@ -317,7 +320,8 @@ async function cacheFeaturedArtists() {
         const artistInfo = await searchArtist(artistName, token);
         const artistId = artistInfo.id;
         
-        if (cachedArtist) {
+        // If artist is cached and we're not forcing a refresh
+        if (cachedArtist && !force) {
           console.log(`${artistName} already cached, updating...`);
           
           // Get fresh data
@@ -387,8 +391,21 @@ async function cacheFeaturedArtists() {
   }
 }
 
-// Run the script
-cacheFeaturedArtists()
+// Parse command line arguments
+const args = process.argv.slice(2);
+const options = {
+  debug: args.includes('--debug'),
+  force: args.includes('--force')
+};
+
+// Configure logger based on debug flag
+if (options.debug) {
+  logger.setLevel('debug');
+  console.log('Debug mode enabled');
+}
+
+// Run the script with options
+cacheFeaturedArtists(options)
   .then(() => {
     console.log('Cache script completed successfully');
     process.exit(0);

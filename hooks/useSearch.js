@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
 import { searchArtist } from '../lib/spotify';
 
@@ -45,7 +45,7 @@ export default function useSearch() {
   }, [debouncedQuery]);
 
   // Trigger search when debounced query changes
-  useState(() => {
+  useEffect(() => {
     fetchResults();
   }, [fetchResults, debouncedQuery]);
 

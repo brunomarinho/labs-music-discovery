@@ -1,14 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from './useAuth';
-import { useRouter } from 'next/router';
 import logger from '../lib/logger';
 
 /**
- * Custom hook for fetching artist recommendations with proper user flow control
- * 
- * Enforces these user flows:
- * 1. Non-logged in users: Can only view cached recommendations
- * 2. Logged in users: Can perform up to 3 searches for non-cached artists
+ * Custom hook for fetching artist recommendations (simplified without auth)
  * 
  * @param {string} artistName - Artist name to get recommendations for
  * @param {string} artistId - Optional Spotify artist ID if available
@@ -20,8 +14,6 @@ export default function useRecommendations(artistName, artistId = null) {
   const [error, setError] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [isDataCached, setIsDataCached] = useState(false);
-  const { user, hasReachedSearchLimit } = useAuth();
-  const router = useRouter();
 
   /**
    * Check if recommendations are cached for this artist
@@ -45,26 +37,11 @@ export default function useRecommendations(artistName, artistId = null) {
 
   /**
    * Fetch recommendations for the given artist
-   * This will only return cached data unless refresh=true
+   * This only returns cached data - refresh parameter removed
    */
-  const fetchRecommendations = useCallback(async (options = {}) => {
+  const fetchRecommendations = useCallback(async () => {
     if (!artistName) {
       return;
-    }
-
-    const { refresh = false } = options;
-
-    // Check if user is eligible to refresh recommendations
-    if (refresh) {
-      if (!user) {
-        setError('Login required to generate new recommendations');
-        return;
-      }
-      
-      if (hasReachedSearchLimit) {
-        setError('You have reached your search limit');
-        return;
-      }
     }
 
     try {
@@ -72,8 +49,8 @@ export default function useRecommendations(artistName, artistId = null) {
       setError(null);
       setNotFound(false);
       
-      // Build the API URL with optional refresh parameter
-      const url = `/api/recommendations/${encodeURIComponent(artistName)}${refresh ? '?refresh=true' : ''}`;
+      // Build the API URL - no refresh parameter
+      const url = `/api/recommendations/${encodeURIComponent(artistName)}`;
       
       const response = await fetch(url, {
         headers: {
@@ -85,12 +62,6 @@ export default function useRecommendations(artistName, artistId = null) {
       if (response.status === 404) {
         setNotFound(true);
         setIsDataCached(false);
-        return;
-      }
-      
-      // If 403, user has reached search limit
-      if (response.status === 403) {
-        setError('Search limit reached');
         return;
       }
       
@@ -108,43 +79,22 @@ export default function useRecommendations(artistName, artistId = null) {
     } finally {
       setLoading(false);
     }
-  }, [artistName, user, hasReachedSearchLimit]);
+  }, [artistName]);
 
   // Check cache status and fetch data when component mounts or artist changes
   useEffect(() => {
     if (artistName) {
       // First check if recommendations are cached
       checkCachedStatus().then(isCached => {
-        // If cached, fetch the data
-        // If not cached AND user is logged in (to respect user flow rules), fetch data
-        if (isCached || user) {
+        // Fetch data if it's cached
+        if (isCached) {
           fetchRecommendations();
         } else {
-          // Not cached and user not logged in - set not found
           setNotFound(true);
         }
       });
     }
-  }, [artistName, checkCachedStatus, fetchRecommendations, user]);
-
-  /**
-   * Generate new recommendations for this artist
-   * Only works for authenticated users who haven't reached their limit
-   */
-  const generateNewRecommendations = useCallback(async () => {
-    if (!user) {
-      router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
-      return;
-    }
-    
-    if (hasReachedSearchLimit) {
-      setError('You have reached your search limit');
-      return;
-    }
-    
-    // Use the fetchRecommendations function with refresh=true
-    await fetchRecommendations({ refresh: true });
-  }, [user, hasReachedSearchLimit, router, fetchRecommendations]);
+  }, [artistName, checkCachedStatus, fetchRecommendations]);
 
   return {
     data,
@@ -152,7 +102,6 @@ export default function useRecommendations(artistName, artistId = null) {
     error,
     notFound,
     isDataCached,
-    generateNewRecommendations,
     hasResults: !!data,
     artistInfo: data?.artist_data || null,
     recommendations: data?.recommendations || []

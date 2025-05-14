@@ -104,16 +104,26 @@
   margin-top: auto;
   font-size: 12px;
   color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.source-label {
+  color: var(--color-muted);
 }
 
 .source-link {
-  color: var(--color-muted);
+  color: var(--color-highlight);
   text-decoration: none;
+  margin-left: 4px;
+  font-weight: 500;
+  text-transform: capitalize;
 }
 
 .source-link:hover {
   text-decoration: underline;
-  color: var(--color-highlight);
+  opacity: 0.9;
 }
 
 /* Media queries */

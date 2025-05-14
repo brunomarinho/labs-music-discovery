@@ -1,0 +1,22 @@
+# Authentication pages
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/pages/auth/login.js
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/pages/auth/signup.js
+
+# Authentication API routes
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/pages/api/auth/callback/spotify.js
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/pages/api/auth/check-limit.js
+
+# Admin pages
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/pages/admin/manage-featured.js
+
+# Unused components
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/components/AuthPrompt.js
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/components/SearchLimitReached.js
+
+# Unused lib files (used only by auth functionality)
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/lib/openai-service.js
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/lib/recommendations-cache.js
+
+# Styles
+/Users/brunomarinho/Desktop/Github/labs-music-discovery/styles/auth.css
+EOL < /dev/null

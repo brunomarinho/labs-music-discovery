@@ -77,14 +77,16 @@ Edit the `data/featured-artists.json` file to include the artists you want to fe
 5. Cache featured artists' recommendations
 
 ```bash
-node scripts/cache-featured-artists.js
+npm run cache
 ```
 
 This script will:
 - Search for each artist on Spotify to get their ID
-- Fetch artist details, top tracks, and related artists
-- Generate AI recommendations using OpenAI
-- Cache all this data in Supabase for faster page loads
+- Fetch artist details and basic info
+- Generate AI-powered recommendations using OpenAI
+- Cache all this data for faster page loads
+
+**Important:** This is the ONLY way to refresh recommendations. The application UI does not include any functionality to refresh recommendations - all updates must be done by admins running this script.
 
 6. Run the development server
 
@@ -108,10 +110,24 @@ npm run dev
 
 The application uses a caching system to improve performance:
 
-1. Featured artists' recommendations are pre-cached using the `cache-featured-artists.js` script
-2. The script fetches data from Spotify and generates AI recommendations
-3. All data is stored in Supabase for fast access
-4. The cache can be refreshed by running the script again
+1. Featured artists' recommendations are pre-cached using the cache script
+2. Run the script with: `npm run cache`
+3. The script fetches basic artist data from Spotify
+4. AI-powered recommendations are generated via OpenAI
+5. All data is cached for fast access
+6. **Admin Only:** The cache can only be refreshed by running the script again, there is no user-facing refresh functionality
+
+### Advanced Cache Options
+
+For debugging or development purposes:
+
+```bash
+# Show verbose output during caching
+npm run cache -- --debug
+
+# Force refresh of all artists even if they're already cached
+npm run cache -- --force
+```
 
 ## License
 

@@ -11,7 +11,6 @@ export default function Home() {
 
   return (
     <Layout>
-
       <div className="hero-section">
         <h1 className="hero-title">Find Your Next Favorite Artist</h1>
         <p className="hero-subtitle">
@@ -49,16 +48,16 @@ export default function Home() {
         <div className="info-card">
           <h3>How It Works</h3>
           <p>
-            Simply search for any music artist you enjoy, and we'll recommend similar 
-            artists you might love, powered by AI and music analysis.
+            Simply search for any music artist from our featured list, and we'll provide
+            AI-powered recommendations of similar artists you might love.
           </p>
         </div>
         
         <div className="info-card">
-          <h3>Create an Account</h3>
+          <h3>Featured Artists</h3>
           <p>
-            Sign up to unlock 3 personalized searches. Each search is cached 
-            and becomes available to everyone!
+            We currently showcase a select group of artists with curated 
+            recommendations. Check back as we add more artists over time!
           </p>
         </div>
         

@@ -1,82 +1,49 @@
-import { searchArtist } from '../../../lib/spotify';
 import logger from '../../../lib/logger';
-import { getArtistRecommendationsWithCache } from '../../../lib/cache-manager';
-import { getCachedArtistRecommendations, incrementSearchCount, getUserProfile } from '../../../lib/supabase';
-import { supabase } from '../../../lib/supabase';
+import { getCachedArtistRecommendations } from '../../../lib/supabase';
+import path from 'path';
+import fs from 'fs';
+
+// Load featured artists
+const featuredArtistsPath = path.join(process.cwd(), 'data', 'featured-artists.json');
+const featuredArtists = JSON.parse(fs.readFileSync(featuredArtistsPath, 'utf8'));
+const featuredArtistsLower = featuredArtists.map(name => name.toLowerCase());
 
 export default async function handler(req, res) {
   const { artistName } = req.query;
-  const forceRefresh = req.query.refresh === 'true';
+  // Refresh is now completely disabled regardless of the parameter
   
   if (!artistName) {
     return res.status(400).json({ error: 'Artist name is required' });
   }
   
   try {
-    // First check if we have cached data
+    // Check if we have cached data
     const { data: cachedData, error: cacheError } = await getCachedArtistRecommendations(artistName);
     
-    // If we have cached data and don't need a refresh, return it immediately
-    if (!cacheError && cachedData && !forceRefresh) {
+    // If we have cached data, return it immediately
+    if (!cacheError && cachedData) {
       return res.status(200).json(cachedData);
     }
     
-    // If we need a refresh or don't have cached data, check user authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // If no session and no cached data, return 404
-    if (!session && (!cachedData || forceRefresh)) {
+    // Check if artist is in our featured list (case insensitive)
+    const isArtistFeatured = featuredArtistsLower.includes(artistName.toLowerCase()) ||
+      // Also check if any featured artist starts with the query
+      featuredArtistsLower.some(name => 
+        name.startsWith(artistName.toLowerCase()) || 
+        artistName.toLowerCase().startsWith(name)
+      );
+      
+    // Only return 404 if no cached data and not a featured artist
+    if (!isArtistFeatured) {
       return res.status(404).json({ 
-        error: 'Artist not found in cache and user is not authenticated' 
+        error: 'Artist recommendations not available' 
       });
     }
     
-    // If authenticated user wants a refresh or there's no cached data
-    if (session && (forceRefresh || !cachedData)) {
-      const userId = session.user.id;
-      
-      // Check if user has reached their search limit
-      const { data: profile, error: profileError } = await getUserProfile(userId);
-      
-      if (profileError) {
-        return res.status(500).json({ error: 'Failed to fetch user profile' });
-      }
-      
-      if (profile.search_count >= 3) {
-        return res.status(403).json({ error: 'Search limit reached' });
-      }
-      
-      // Search for the artist first to get their Spotify ID
-      const searchResults = await searchArtist(artistName);
-      
-      if (!searchResults || searchResults.length === 0) {
-        return res.status(404).json({ error: 'Artist not found' });
-      }
-      
-      // Use the first result (most relevant)
-      const artist = searchResults[0];
-      
-      // Get and cache recommendations
-      const recommendationsData = await getArtistRecommendationsWithCache(
-        artist.name,
-        artist.id,
-        true, // force refresh
-        userId
-      );
-      
-      // Increment user's search count
-      await incrementSearchCount(userId);
-      
-      return res.status(200).json(recommendationsData);
-    }
-    
-    // If we have cached data and user is not authenticated or doesn't want a refresh
-    if (cachedData) {
-      return res.status(200).json(cachedData);
-    }
-    
-    // Should not reach here, but just in case
-    return res.status(404).json({ error: 'Artist recommendations not found' });
+    // If it's a featured artist but no cache exists yet, indicate this
+    return res.status(404).json({ 
+      error: 'Recommendations not yet generated for this featured artist' 
+    });
   } catch (error) {
     logger.error('Error in recommendations API:', error);
     return res.status(500).json({ error: 'Failed to fetch recommendations' });

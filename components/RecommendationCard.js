@@ -14,7 +14,7 @@ export default function RecommendationCard({
   const [imageError, setImageError] = useState(false);
   
   // Extract data from recommendation
-  const { name, reason } = recommendation;
+  const { name, reason, quote, domain } = recommendation;
   
   // Fetch image on component mount
   useEffect(() => {
@@ -65,8 +65,64 @@ export default function RecommendationCard({
     subtitle = recommendation.artist || recommendation.subtitle || null;
   }
   
-  // Source information
-  const source = recommendation.source || recommendation.quote ? "Source: Web" : "Source: AI";
+  // Format source information
+  let sourceDisplay = '';
+  let sourceName = '';
+  let actualSourceUrl = recommendation.sourceUrl || sourceUrl;
+
+  if (recommendation.source) {
+    // We have a specific source type (Interview, Podcast, YouTube, Social media)
+    sourceDisplay = 'Source: ';
+    sourceName = recommendation.source;
+    
+    // If we have a domain, use that as the source name unless it's just the source type
+    if (domain && !['interview', 'podcast', 'youtube', 'social media'].includes(domain.toLowerCase())) {
+      // Extract domain without TLD and capitalize each word
+      sourceName = domain.replace(/\.(com|org|net|io|co|tv|fm|me)$/, '')
+                        .split('.')
+                        .pop()
+                        .replace(/-/g, ' ')
+                        .replace(/\b\w/g, l => l.toUpperCase());
+    }
+  } else if (quote) {
+    // We have a quote but no specific source
+    sourceDisplay = 'Source: ';
+    sourceName = domain ? domain.replace(/\.(com|org|net|io|co|tv|fm|me)$/, '')
+                              .split('.')
+                              .pop()
+                              .replace(/-/g, ' ')
+                              .replace(/\b\w/g, l => l.toUpperCase()) : 'Web';
+  } else {
+    // Fallback to AI
+    sourceDisplay = 'Source: AI';
+  }
+  
+  // Special case formatting for common sources
+  const specialCases = {
+    'youtube': 'YouTube',
+    'spotify': 'Spotify',
+    'instagram': 'Instagram',
+    'twitter': 'Twitter',
+    'facebook': 'Facebook',
+    'soundcloud': 'SoundCloud',
+    'bandcamp': 'Bandcamp',
+    'pitchfork': 'Pitchfork',
+    'rollingstone': 'Rolling Stone',
+    'nme': 'NME',
+    'billboard': 'Billboard',
+    'npr': 'NPR'
+  };
+  
+  // Check if source matches any special case
+  if (sourceName) {
+    const lowerSource = sourceName.toLowerCase();
+    for (const [key, value] of Object.entries(specialCases)) {
+      if (lowerSource === key || lowerSource.includes(key)) {
+        sourceName = value;
+        break;
+      }
+    }
+  }
   
   return (
     <div 
@@ -97,15 +153,18 @@ export default function RecommendationCard({
           {subtitle && <div className="recommendation-subtitle">{subtitle}</div>}
         </Link>
         
-        <p className="recommendation-description">{reason}</p>
+        <p className="recommendation-description">{quote || reason}</p>
         
         <div className="recommendation-source">
-          {sourceUrl ? (
-            <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="source-link">
-              {source}
-            </a>
+          {sourceName && actualSourceUrl ? (
+            <>
+              <span className="source-label">Source: </span>
+              <a href={actualSourceUrl} target="_blank" rel="noopener noreferrer" className="source-link">
+                {sourceName}
+              </a>
+            </>
           ) : (
-            <span>{source}</span>
+            <span>{sourceDisplay}</span>
           )}
         </div>
       </div>
